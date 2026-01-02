@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   CheckCircle,
   Circle,
   Clock,
   AlertTriangle,
   Plus,
-  Filter,
   Calendar,
   User,
   MoreVertical,
   Flag,
+  Loader2,
+  Trash2,
+  Edit,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
@@ -27,6 +29,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -44,27 +47,30 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { taskAPI, employeeAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Task {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  assignee: string;
-  assigneeRole: string;
+  assignedTo: Array<{ _id: string; firstName: string; lastName: string; employeeId?: string }>;
+  assignedBy?: { email: string };
   priority: "low" | "medium" | "high" | "urgent";
-  status: "pending" | "in-progress" | "completed";
+  status: "pending" | "in-progress" | "under-review" | "completed" | "cancelled" | "on-hold";
   dueDate: string;
   createdAt: string;
+  completedDate?: string;
 }
 
-const tasks: Task[] = [
-  { id: "1", title: "Prepare Q4 Financial Report", description: "Compile all financial data for Q4 board presentation", assignee: "Robert Taylor", assigneeRole: "Finance", priority: "urgent", status: "in-progress", dueDate: "Dec 12", createdAt: "Dec 5" },
-  { id: "2", title: "Review Marketing Budget 2025", description: "Analyze and approve marketing department budget proposal", assignee: "Emily Davis", assigneeRole: "Marketing", priority: "high", status: "pending", dueDate: "Dec 15", createdAt: "Dec 8" },
-  { id: "3", title: "Update Employee Handbook", description: "Review and update company policies in employee handbook", assignee: "Lisa Anderson", assigneeRole: "HR", priority: "medium", status: "in-progress", dueDate: "Dec 20", createdAt: "Dec 1" },
-  { id: "4", title: "Product Launch Planning", description: "Coordinate with teams for upcoming product launch", assignee: "Sarah Johnson", assigneeRole: "Engineering", priority: "high", status: "pending", dueDate: "Dec 18", createdAt: "Dec 6" },
-  { id: "5", title: "Vendor Contract Review", description: "Review and negotiate terms with key vendors", assignee: "James Wilson", assigneeRole: "Operations", priority: "medium", status: "completed", dueDate: "Dec 10", createdAt: "Nov 28" },
-  { id: "6", title: "Team Building Event Planning", description: "Organize end of year team building event", assignee: "Lisa Anderson", assigneeRole: "HR", priority: "low", status: "pending", dueDate: "Dec 25", createdAt: "Dec 2" },
-];
+interface Employee {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  employeeId: string;
+  designation?: string;
+}
 
 const priorityConfig = {
   low: { label: "Low", color: "bg-muted text-muted-foreground", icon: Circle },
@@ -76,14 +82,164 @@ const priorityConfig = {
 const statusConfig = {
   pending: { label: "Pending", color: "bg-muted text-muted-foreground" },
   "in-progress": { label: "In Progress", color: "bg-primary/10 text-primary" },
+  "under-review": { label: "Under Review", color: "bg-warning/10 text-warning" },
   completed: { label: "Completed", color: "bg-success/10 text-success" },
+  cancelled: { label: "Cancelled", color: "bg-destructive/10 text-destructive" },
+  "on-hold": { label: "On Hold", color: "bg-muted text-muted-foreground" },
 };
 
 export default function TasksPage() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    assignedTo: [] as string[],
+    priority: "medium" as "low" | "medium" | "high" | "urgent",
+    dueDate: "",
+  });
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [tasksRes, employeesRes] = await Promise.all([
+        taskAPI.getAll(),
+        employeeAPI.getAll({ status: "active" }),
+      ]);
+      
+      const fetchedTasks = tasksRes.data.data.tasks || [];
+      // Filter tasks created by current user
+      const userTasks = fetchedTasks.filter(
+        (task: Task) => task.assignedBy?._id === user?.id || task.assignedBy?.email === user?.email
+      );
+      setTasks(userTasks);
+      
+      const fetchedEmployees = employeesRes.data.data.employees || [];
+      setEmployees(fetchedEmployees);
+    } catch (error: any) {
+      console.error("Error fetching data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load tasks",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      assignedTo: [],
+      priority: "medium",
+      dueDate: "",
+    });
+  };
+
+  const handleCreateTask = async () => {
+    if (!formData.title.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a task title",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.assignedTo.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please assign the task to at least one employee",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const taskData = {
+        title: formData.title,
+        description: formData.description,
+        assignedTo: formData.assignedTo,
+        priority: formData.priority,
+        dueDate: formData.dueDate,
+        status: "pending",
+      };
+
+      const response = await taskAPI.create(taskData);
+
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: "Task created successfully",
+        });
+        setIsCreateOpen(false);
+        resetForm();
+        await fetchData();
+      }
+    } catch (error: any) {
+      console.error("Error creating task:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to create task",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (taskId: string, newStatus: string) => {
+    try {
+      await taskAPI.update(taskId, { status: newStatus });
+      toast({
+        title: "Success",
+        description: "Task status updated",
+      });
+      await fetchData();
+    } catch (error: any) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await taskAPI.delete(taskId);
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+      await fetchData();
+    } catch (error: any) {
+      console.error("Error deleting task:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredTasks = tasks.filter((task) => {
     const matchesPriority = filterPriority === "all" || task.priority === filterPriority;
@@ -91,13 +247,44 @@ export default function TasksPage() {
     return matchesPriority && matchesStatus;
   });
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  const getAssigneeNames = (task: Task) => {
+    return task.assignedTo
+      .map((emp) => `${emp.firstName} ${emp.lastName}`)
+      .join(", ");
+  };
+
+  const pendingTasks = tasks.filter((t) => t.status === "pending");
+  const inProgressTasks = tasks.filter((t) => t.status === "in-progress");
+  const completedTasks = tasks.filter((t) => t.status === "completed");
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in">
       <PageHeader
         title="Task Management"
         description="Assign and track tasks across teams"
         actions={
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <Dialog open={isCreateOpen} onOpenChange={(open) => {
+            setIsCreateOpen(open);
+            if (!open) {
+              resetForm();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="w-4 h-4" />
@@ -113,31 +300,88 @@ export default function TasksPage() {
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Task Title</label>
-                  <Input placeholder="Enter task title..." />
+                  <label className="text-sm font-medium mb-2 block">
+                    Task Title <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    placeholder="Enter task title..."
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-2 block">Description</label>
-                  <Textarea placeholder="Describe the task..." className="min-h-[100px]" />
+                  <Textarea
+                    placeholder="Describe the task..."
+                    className="min-h-[100px]"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Assign To</label>
-                    <Select>
+                    <label className="text-sm font-medium mb-2 block">
+                      Assign To <span className="text-destructive">*</span>
+                    </label>
+                    <Select
+                      value={formData.assignedTo[0] || ""}
+                      onValueChange={(value) => {
+                        if (value && !formData.assignedTo.includes(value)) {
+                          setFormData({
+                            ...formData,
+                            assignedTo: [...formData.assignedTo, value],
+                          });
+                        }
+                      }}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select person" />
+                        <SelectValue placeholder="Select employee" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="hr">HR Department</SelectItem>
-                        <SelectItem value="finance">Finance Team</SelectItem>
-                        <SelectItem value="engineering">Engineering Lead</SelectItem>
-                        <SelectItem value="marketing">Marketing Manager</SelectItem>
+                        {employees.map((emp) => (
+                          <SelectItem key={emp._id} value={emp._id}>
+                            {emp.firstName} {emp.lastName} ({emp.employeeId})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                    {formData.assignedTo.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {formData.assignedTo.map((empId) => {
+                          const emp = employees.find((e) => e._id === empId);
+                          return (
+                            <div
+                              key={empId}
+                              className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-sm"
+                            >
+                              <span>
+                                {emp?.firstName} {emp?.lastName}
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setFormData({
+                                    ...formData,
+                                    assignedTo: formData.assignedTo.filter((id) => id !== empId),
+                                  });
+                                }}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block">Priority</label>
-                    <Select defaultValue="medium">
+                    <Select
+                      value={formData.priority}
+                      onValueChange={(value: any) =>
+                        setFormData({ ...formData, priority: value })
+                      }
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -151,16 +395,31 @@ export default function TasksPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Due Date</label>
-                  <Input type="date" />
-                </div>
-                <div className="flex justify-end gap-3 pt-4">
-                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button>Create Task</Button>
+                  <label className="text-sm font-medium mb-2 block">
+                    Due Date <span className="text-destructive">*</span>
+                  </label>
+                  <Input
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  />
                 </div>
               </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleCreateTask} disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Task"
+                  )}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         }
@@ -168,24 +427,29 @@ export default function TasksPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Tasks" value={tasks.length.toString()} icon={CheckCircle} variant="primary" />
         <StatCard
-          title="In Progress"
-          value={tasks.filter((t) => t.status === "in-progress").length.toString()}
+          title="Total Tasks"
+          value={tasks.length.toString()}
+          icon={CheckCircle}
+          variant="primary"
+        />
+        <StatCard
+          title="Pending"
+          value={pendingTasks.length.toString()}
           icon={Clock}
           variant="warning"
         />
         <StatCard
-          title="Completed"
-          value={tasks.filter((t) => t.status === "completed").length.toString()}
-          icon={CheckCircle}
-          variant="success"
+          title="In Progress"
+          value={inProgressTasks.length.toString()}
+          icon={Clock}
+          variant="default"
         />
         <StatCard
-          title="Urgent"
-          value={tasks.filter((t) => t.priority === "urgent").length.toString()}
-          icon={AlertTriangle}
-          variant="destructive"
+          title="Completed"
+          value={completedTasks.length.toString()}
+          icon={CheckCircle}
+          variant="success"
         />
       </div>
 
@@ -220,64 +484,96 @@ export default function TasksPage() {
 
       {/* Tasks List */}
       <div className="space-y-4">
-        {filteredTasks.map((task) => {
-          const priority = priorityConfig[task.priority];
-          const status = statusConfig[task.status];
-          const PriorityIcon = priority.icon;
+        {filteredTasks.length === 0 ? (
+          <div className="bg-card rounded-xl border border-border p-12 text-center">
+            <CheckCircle className="w-12 h-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+            <h3 className="text-lg font-semibold mb-2">No tasks found</h3>
+            <p className="text-muted-foreground">
+              {tasks.length === 0
+                ? "Create your first task to get started"
+                : "No tasks match the selected filters"}
+            </p>
+          </div>
+        ) : (
+          filteredTasks.map((task) => {
+            const priority = priorityConfig[task.priority];
+            const status = statusConfig[task.status] || statusConfig.pending;
+            const PriorityIcon = priority.icon;
 
-          return (
-            <div
-              key={task.id}
-              className="bg-card rounded-xl border border-border p-6 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setSelectedTask(task)}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4 flex-1">
-                  <div className={cn("p-2.5 rounded-lg", priority.color)}>
-                    <PriorityIcon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold">{task.title}</h3>
-                      <span className={cn("badge-status", priority.color)}>{priority.label}</span>
-                      <span className={cn("badge-status", status.color)}>{status.label}</span>
+            return (
+              <div
+                key={task._id}
+                className="bg-card rounded-xl border border-border p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className={cn("p-2.5 rounded-lg", priority.color)}>
+                      <PriorityIcon className="w-5 h-5" />
                     </div>
-                    <p className="text-muted-foreground text-sm mb-3 line-clamp-1">
-                      {task.description}
-                    </p>
-                    <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <User className="w-4 h-4" />
-                        {task.assignee} ({task.assigneeRole})
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold">{task.title}</h3>
+                        <span className={cn("badge-status", priority.color)}>
+                          {priority.label}
+                        </span>
+                        <span className={cn("badge-status", status.color)}>{status.label}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-4 h-4" />
-                        Due: {task.dueDate}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="w-4 h-4" />
-                        Created: {task.createdAt}
+                      <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
+                        {task.description || "No description"}
+                      </p>
+                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-4 h-4" />
+                          {getAssigneeNames(task)}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-4 h-4" />
+                          Due: {formatDate(task.dueDate)}
+                        </div>
+                        {task.completedDate && (
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle className="w-4 h-4" />
+                            Completed: {formatDate(task.completedDate)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setSelectedTask(task)}>
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleUpdateStatus(task._id, "in-progress")}
+                        disabled={task.status === "in-progress"}
+                      >
+                        Mark as In Progress
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleUpdateStatus(task._id, "completed")}
+                        disabled={task.status === "completed"}
+                      >
+                        Mark as Completed
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteTask(task._id)}
+                        className="text-destructive"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-9 w-9">
-                      <MoreVertical className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Edit Task</DropdownMenuItem>
-                    <DropdownMenuItem>Mark as Complete</DropdownMenuItem>
-                    <DropdownMenuItem>Reassign</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Task Detail Sheet */}
@@ -291,35 +587,42 @@ export default function TasksPage() {
               <div>
                 <h3 className="text-lg font-semibold">{selectedTask.title}</h3>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className={cn("badge-status", priorityConfig[selectedTask.priority].color)}>
+                  <span
+                    className={cn(
+                      "badge-status",
+                      priorityConfig[selectedTask.priority].color
+                    )}
+                  >
                     {priorityConfig[selectedTask.priority].label}
                   </span>
-                  <span className={cn("badge-status", statusConfig[selectedTask.status].color)}>
-                    {statusConfig[selectedTask.status].label}
+                  <span className={cn("badge-status", statusConfig[selectedTask.status]?.color || statusConfig.pending.color)}>
+                    {statusConfig[selectedTask.status]?.label || "Pending"}
                   </span>
                 </div>
               </div>
 
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
-                <p className="text-sm">{selectedTask.description}</p>
+                <p className="text-sm">{selectedTask.description || "No description"}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">Assigned To</h4>
-                  <p className="font-medium">{selectedTask.assignee}</p>
-                  <p className="text-sm text-muted-foreground">{selectedTask.assigneeRole}</p>
+                  <p className="font-medium">{getAssigneeNames(selectedTask)}</p>
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">Due Date</h4>
-                  <p className="font-medium">{selectedTask.dueDate}</p>
+                  <p className="font-medium">{formatDate(selectedTask.dueDate)}</p>
                 </div>
               </div>
 
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Update Status</h4>
-                <Select defaultValue={selectedTask.status}>
+                <Select
+                  value={selectedTask.status}
+                  onValueChange={(value) => handleUpdateStatus(selectedTask._id, value)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -327,14 +630,22 @@ export default function TasksPage() {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="in-progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="on-hold">On Hold</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="flex gap-3 pt-4">
-                <Button className="flex-1">Save Changes</Button>
-                <Button variant="outline" className="flex-1">
-                  Add Comment
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={() => {
+                    handleDeleteTask(selectedTask._id);
+                    setSelectedTask(null);
+                  }}
+                >
+                  Delete Task
                 </Button>
               </div>
             </div>

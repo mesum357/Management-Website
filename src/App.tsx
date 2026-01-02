@@ -26,7 +26,7 @@ import BossDashboard from "@/pages/boss/BossDashboard";
 import MeetingsPage from "@/pages/boss/MeetingsPage";
 import TasksPage from "@/pages/boss/TasksPage";
 import BossNoticesPage from "@/pages/boss/BossNoticesPage";
-import ReportsPage from "@/pages/boss/ReportsPage";
+import AnalyticsPage from "@/pages/hr/AnalyticsPage";
 
 import NotFound from "./pages/NotFound";
 
@@ -108,8 +108,8 @@ const App = () => {
         <Route path="/boss/chat" element={
           <BossRoute><Chat /></BossRoute>
         } />
-        <Route path="/boss/reports" element={
-          <BossRoute><ReportsPage /></BossRoute>
+        <Route path="/boss/analytics" element={
+          <BossRoute><AnalyticsPage /></BossRoute>
         } />
       </Route>
       

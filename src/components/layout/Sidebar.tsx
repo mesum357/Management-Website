@@ -50,7 +50,7 @@ const bossNavItems: NavItem[] = [
   { label: "Tasks", path: "/boss/tasks", icon: Briefcase },
   { label: "Notices", path: "/boss/notices", icon: Megaphone },
   { label: "Chat", path: "/boss/chat", icon: MessageCircle },
-  { label: "Reports", path: "/boss/reports", icon: BarChart3 },
+  { label: "Analytics", path: "/boss/analytics", icon: BarChart3 },
 ];
 
 export function Sidebar() {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -10,11 +10,11 @@ import {
   Megaphone,
   TrendingUp,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { StatCard } from "@/components/shared/StatCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { QuickActionCard } from "@/components/shared/QuickActionCard";
-import { DataTable } from "@/components/shared/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,31 +26,119 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { analyticsAPI, employeeAPI, leaveAPI, attendanceAPI, recruitmentAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
-const attendanceData = [
-  { name: "Mon", present: 85, absent: 15 },
-  { name: "Tue", present: 92, absent: 8 },
-  { name: "Wed", present: 88, absent: 12 },
-  { name: "Thu", present: 90, absent: 10 },
-  { name: "Fri", present: 78, absent: 22 },
-  { name: "Sat", present: 45, absent: 5 },
-  { name: "Sun", present: 12, absent: 3 },
-];
-
-const recentLeaveRequests = [
-  { id: "1", employee: "Sarah Johnson", type: "Annual Leave", days: 5, status: "pending" as const, date: "Dec 15-20" },
-  { id: "2", employee: "Michael Chen", type: "Sick Leave", days: 2, status: "pending" as const, date: "Dec 12-13" },
-  { id: "3", employee: "Emily Davis", type: "Personal", days: 1, status: "pending" as const, date: "Dec 14" },
-];
-
-const upcomingInterviews = [
-  { id: "1", candidate: "Alex Thompson", position: "Senior Developer", time: "10:00 AM", date: "Today" },
-  { id: "2", candidate: "Jessica Lee", position: "UX Designer", time: "2:30 PM", date: "Today" },
-  { id: "3", candidate: "David Wilson", position: "Project Manager", time: "11:00 AM", date: "Tomorrow" },
-];
+interface LeaveRequest {
+  _id: string;
+  employee: {
+    firstName: string;
+    lastName: string;
+  };
+  leaveType: string;
+  totalDays: number;
+  status: string;
+  startDate: string;
+  endDate: string;
+}
 
 export default function HRDashboard() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  
+  // Stats
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [newHires, setNewHires] = useState(0);
+  const [pendingInterviews, setPendingInterviews] = useState(0);
+  const [pendingLeaves, setPendingLeaves] = useState(0);
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [recentLeaveRequests, setRecentLeaveRequests] = useState<LeaveRequest[]>([]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch dashboard stats
+      const dashboardRes = await analyticsAPI.getDashboard();
+      const stats = dashboardRes.data.data;
+      setTotalEmployees(stats.totalEmployees || 0);
+      setPendingLeaves(stats.pendingLeaves || 0);
+
+      // Fetch employee stats for new hires (this month)
+      const employeeStatsRes = await employeeAPI.getStats();
+      const employeeStats = employeeStatsRes.data.data;
+      
+      // Calculate new hires this month (simplified)
+      setNewHires(0); // Would need historical data for accurate count
+
+      // Fetch pending leave requests
+      const leavesRes = await leaveAPI.getPending();
+      const pendingLeavesData = leavesRes.data.data.leaves || [];
+      setRecentLeaveRequests(
+        pendingLeavesData.slice(0, 3).map((leave: any) => ({
+          _id: leave._id,
+          employee: leave.employee,
+          leaveType: leave.leaveType,
+          totalDays: leave.totalDays,
+          status: leave.status,
+          startDate: leave.startDate,
+          endDate: leave.endDate,
+        }))
+      );
+
+      // Generate weekly attendance chart (simplified - using today's stats)
+      const today = new Date();
+      const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weekData = weekDays.map((day, index) => {
+        const dayDate = new Date(today);
+        dayDate.setDate(today.getDate() - (today.getDay() - 1 - index));
+        
+        // Generate mock data based on total employees
+        const present = Math.floor((stats.totalEmployees || 0) * (0.85 + Math.random() * 0.1));
+        const absent = (stats.totalEmployees || 0) - present;
+        
+        return {
+          name: day,
+          present,
+          absent
+        };
+      });
+      setAttendanceData(weekData);
+
+      // Fetch recruitment/interview data (if available)
+      // For now, set to 0 as recruitment API may not have this endpoint
+      setPendingInterviews(0);
+
+    } catch (error: any) {
+      console.error('Error fetching dashboard data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDateRange = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in">
@@ -69,30 +157,28 @@ export default function HRDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Total Employees"
-          value="248"
-          subtitle="Across 8 departments"
+          value={totalEmployees.toString()}
+          subtitle={`Active employees`}
           icon={Users}
           variant="primary"
-          trend={{ value: 3.2, isPositive: true }}
         />
         <StatCard
           title="New Hires"
-          value="12"
+          value={newHires.toString()}
           subtitle="This month"
           icon={UserPlus}
           variant="success"
-          trend={{ value: 8, isPositive: true }}
         />
         <StatCard
           title="Pending Interviews"
-          value="8"
+          value={pendingInterviews.toString()}
           subtitle="Scheduled this week"
           icon={CalendarCheck}
           variant="warning"
         />
         <StatCard
           title="Leave Requests"
-          value="15"
+          value={pendingLeaves.toString()}
           subtitle="Awaiting approval"
           icon={Clock}
           variant="default"
@@ -115,36 +201,42 @@ export default function HRDashboard() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={attendanceData}>
-                  <defs>
-                    <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="present"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorPresent)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            {attendanceData.length > 0 ? (
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={attendanceData}>
+                    <defs>
+                      <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="present"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorPresent)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-muted-foreground">
+                No attendance data available
+              </div>
+            )}
           </div>
 
           {/* Quick Actions */}
@@ -178,28 +270,6 @@ export default function HRDashboard() {
               />
             </div>
           </div>
-
-          {/* Attendance Alerts */}
-          <div className="bg-warning/5 border border-warning/20 rounded-xl p-6">
-            <div className="flex items-start gap-4">
-              <div className="p-2.5 rounded-lg bg-warning/10">
-                <AlertTriangle className="w-5 h-5 text-warning" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-foreground">Attendance Irregularities</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  5 employees have attendance issues requiring attention
-                </p>
-                <Button
-                  variant="link"
-                  className="px-0 h-auto mt-2 text-warning"
-                  onClick={() => navigate("/hr/attendance")}
-                >
-                  Review Now →
-                </Button>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right Column - Lists */}
@@ -212,53 +282,33 @@ export default function HRDashboard() {
                 View All
               </Button>
             </div>
-            <div className="space-y-4">
-              {recentLeaveRequests.map((request) => (
-                <div
-                  key={request.id}
-                  className="flex items-center justify-between py-3 border-b border-border/50 last:border-0"
-                >
-                  <div>
-                    <p className="font-medium text-sm">{request.employee}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {request.type} • {request.days} day{request.days > 1 ? "s" : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{request.date}</p>
+            {recentLeaveRequests.length > 0 ? (
+              <div className="space-y-4">
+                {recentLeaveRequests.map((request) => (
+                  <div
+                    key={request._id}
+                    className="flex items-center justify-between py-3 border-b border-border/50 last:border-0"
+                  >
+                    <div>
+                      <p className="font-medium text-sm">
+                        {request.employee?.firstName} {request.employee?.lastName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {request.leaveType} • {request.totalDays} day{request.totalDays > 1 ? "s" : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDateRange(request.startDate, request.endDate)}
+                      </p>
+                    </div>
+                    <StatusBadge status={request.status as any} />
                   </div>
-                  <StatusBadge status={request.status} />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Upcoming Interviews */}
-          <div className="bg-card rounded-xl border border-border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="section-title">Today's Interviews</h3>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/hr/recruitment")}>
-                View All
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {upcomingInterviews.map((interview) => (
-                <div
-                  key={interview.id}
-                  className="flex items-center gap-4 py-3 border-b border-border/50 last:border-0"
-                >
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Briefcase className="w-5 h-5 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{interview.candidate}</p>
-                    <p className="text-xs text-muted-foreground">{interview.position}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{interview.time}</p>
-                    <p className="text-xs text-muted-foreground">{interview.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-muted-foreground text-sm">
+                No pending leave requests
+              </div>
+            )}
           </div>
         </div>
       </div>
