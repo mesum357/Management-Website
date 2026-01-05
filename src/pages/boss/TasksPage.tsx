@@ -12,6 +12,8 @@ import {
   Loader2,
   Trash2,
   Edit,
+  Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
@@ -62,6 +64,9 @@ interface Task {
   dueDate: string;
   createdAt: string;
   completedDate?: string;
+  submissionDescription?: string;
+  submissionDate?: string;
+  attachments?: Array<{ name: string; url: string; uploadedBy?: any; uploadedAt?: string }>;
 }
 
 interface Employee {
@@ -92,6 +97,8 @@ export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -121,22 +128,87 @@ export default function TasksPage() {
         employeeAPI.getAll({ status: "active" }),
       ]);
       
-      const fetchedTasks = tasksRes.data.data.tasks || [];
-      // Filter tasks created by current user
-      const userTasks = fetchedTasks.filter(
-        (task: Task) => task.assignedBy?._id === user?.id || task.assignedBy?.email === user?.email
-      );
-      setTasks(userTasks);
+      // Ensure we're getting the tasks array from the correct response structure
+      const fetchedTasks = tasksRes.data?.data?.tasks || tasksRes.data?.tasks || [];
       
-      const fetchedEmployees = employeesRes.data.data.employees || [];
+      // Validate and normalize task data structure
+      const normalizedTasks = fetchedTasks.map((task: any) => {
+        // Ensure assignedTo is properly populated
+        let assignedToArray = [];
+        if (Array.isArray(task.assignedTo)) {
+          assignedToArray = task.assignedTo.map((emp: any) => {
+            // Handle both populated and non-populated employee references
+            if (typeof emp === 'object' && emp !== null) {
+              return {
+                _id: emp._id || emp.toString(),
+                firstName: emp.firstName || "",
+                lastName: emp.lastName || "",
+                employeeId: emp.employeeId || "",
+              };
+            }
+            // If it's just an ID, we need to find the employee from the employees list
+            return {
+              _id: emp.toString(),
+              firstName: "",
+              lastName: "",
+              employeeId: "",
+            };
+          });
+        }
+        
+        return {
+          _id: task._id,
+          title: task.title || "Untitled Task",
+          description: task.description || "",
+          assignedTo: assignedToArray,
+          assignedBy: task.assignedBy ? {
+            email: typeof task.assignedBy === 'object' ? (task.assignedBy.email || "") : task.assignedBy
+          } : undefined,
+          priority: task.priority || "medium",
+          status: task.status || "pending",
+          dueDate: task.dueDate || new Date().toISOString(),
+          createdAt: task.createdAt || new Date().toISOString(),
+          completedDate: task.completedDate,
+          submissionDescription: task.submissionDescription,
+          submissionDate: task.submissionDate,
+          attachments: task.attachments || [],
+        };
+      });
+      
+      // Fill in employee details for tasks where assignedTo might be just IDs
+      const fetchedEmployees = employeesRes.data?.data?.employees || employeesRes.data?.employees || [];
+      const finalTasks = normalizedTasks.map((task: any) => {
+        if (task.assignedTo.length > 0 && !task.assignedTo[0].firstName) {
+          // If employee details are missing, try to find them from the employees list
+          task.assignedTo = task.assignedTo.map((emp: any) => {
+            const fullEmployee = fetchedEmployees.find((e: Employee) => e._id === emp._id);
+            if (fullEmployee) {
+              return {
+                _id: fullEmployee._id,
+                firstName: fullEmployee.firstName,
+                lastName: fullEmployee.lastName,
+                employeeId: fullEmployee.employeeId || "",
+              };
+            }
+            return emp;
+          });
+        }
+        return task;
+      });
+      
+      setTasks(finalTasks);
       setEmployees(fetchedEmployees);
     } catch (error: any) {
       console.error("Error fetching data:", error);
+      console.error("Error details:", error.response?.data);
       toast({
         title: "Error",
-        description: "Failed to load tasks",
+        description: error.response?.data?.message || "Failed to load tasks",
         variant: "destructive",
       });
+      // Set empty arrays on error to prevent showing stale data
+      setTasks([]);
+      setEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -150,6 +222,75 @@ export default function TasksPage() {
       priority: "medium",
       dueDate: "",
     });
+    setEditingTask(null);
+  };
+
+  const handleEditClick = (task: Task) => {
+    setEditingTask(task);
+    // Format due date for input (YYYY-MM-DD)
+    const dueDate = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "";
+    setFormData({
+      title: task.title,
+      description: task.description || "",
+      assignedTo: task.assignedTo.map((emp) => emp._id),
+      priority: task.priority,
+      dueDate: dueDate,
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!editingTask) return;
+
+    if (!formData.title.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a task title",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.assignedTo.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please assign the task to at least one employee",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const taskData = {
+        title: formData.title,
+        description: formData.description,
+        assignedTo: formData.assignedTo,
+        priority: formData.priority,
+        dueDate: formData.dueDate,
+      };
+
+      const response = await taskAPI.update(editingTask._id, taskData);
+
+      if (response.data.success) {
+        toast({
+          title: "Success",
+          description: "Task updated successfully",
+        });
+        setIsEditOpen(false);
+        resetForm();
+        await fetchData();
+      }
+    } catch (error: any) {
+      console.error("Error updating task:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update task",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCreateTask = async () => {
@@ -224,18 +365,26 @@ export default function TasksPage() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) {
+      return;
+    }
+
     try {
       await taskAPI.delete(taskId);
       toast({
         title: "Success",
         description: "Task deleted successfully",
       });
+      // Close detail sheet if the deleted task was selected
+      if (selectedTask?._id === taskId) {
+        setSelectedTask(null);
+      }
       await fetchData();
     } catch (error: any) {
       console.error("Error deleting task:", error);
       toast({
         title: "Error",
-        description: "Failed to delete task",
+        description: error.response?.data?.message || "Failed to delete task",
         variant: "destructive",
       });
     }
@@ -323,28 +472,32 @@ export default function TasksPage() {
                     <label className="text-sm font-medium mb-2 block">
                       Assign To <span className="text-destructive">*</span>
                     </label>
-                    <Select
-                      value={formData.assignedTo[0] || ""}
-                      onValueChange={(value) => {
-                        if (value && !formData.assignedTo.includes(value)) {
-                          setFormData({
-                            ...formData,
-                            assignedTo: [...formData.assignedTo, value],
-                          });
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select employee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {employees.map((emp) => (
-                          <SelectItem key={emp._id} value={emp._id}>
-                            {emp.firstName} {emp.lastName} ({emp.employeeId})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <Select
+                  value={formData.assignedTo[0] || ""}
+                  onValueChange={(value) => {
+                    if (value && !formData.assignedTo.includes(value)) {
+                      setFormData({
+                        ...formData,
+                        assignedTo: [...formData.assignedTo, value],
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employee" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {employees.length === 0 ? (
+                      <SelectItem value="" disabled>No employees available</SelectItem>
+                    ) : (
+                      employees.map((emp) => (
+                        <SelectItem key={emp._id} value={emp._id}>
+                          {emp.firstName} {emp.lastName} {emp.employeeId ? `(${emp.employeeId})` : ''}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
                     {formData.assignedTo.length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-2">
                         {formData.assignedTo.map((empId) => {
@@ -424,6 +577,149 @@ export default function TasksPage() {
           </Dialog>
         }
       />
+
+      {/* Edit Task Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={(open) => {
+        setIsEditOpen(open);
+        if (!open) {
+          resetForm();
+        }
+      }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>
+              Update task details and assignments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Task Title <span className="text-destructive">*</span>
+              </label>
+              <Input
+                placeholder="Enter task title..."
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Description</label>
+              <Textarea
+                placeholder="Describe the task..."
+                className="min-h-[100px]"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Assign To <span className="text-destructive">*</span>
+                </label>
+                <Select
+                  value={formData.assignedTo[0] || ""}
+                  onValueChange={(value) => {
+                    if (value && !formData.assignedTo.includes(value)) {
+                      setFormData({
+                        ...formData,
+                        assignedTo: [...formData.assignedTo, value],
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employee" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    {employees.length === 0 ? (
+                      <SelectItem value="" disabled>No employees available</SelectItem>
+                    ) : (
+                      employees.map((emp) => (
+                        <SelectItem key={emp._id} value={emp._id}>
+                          {emp.firstName} {emp.lastName} {emp.employeeId ? `(${emp.employeeId})` : ''}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {formData.assignedTo.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {formData.assignedTo.map((empId) => {
+                      const emp = employees.find((e) => e._id === empId);
+                      return (
+                        <div
+                          key={empId}
+                          className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-sm"
+                        >
+                          <span>
+                            {emp?.firstName} {emp?.lastName}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setFormData({
+                                ...formData,
+                                assignedTo: formData.assignedTo.filter((id) => id !== empId),
+                              });
+                            }}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Priority</label>
+                <Select
+                  value={formData.priority}
+                  onValueChange={(value: any) =>
+                    setFormData({ ...formData, priority: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Due Date <span className="text-destructive">*</span>
+              </label>
+              <Input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateTask} disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Task"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -546,8 +842,21 @@ export default function TasksPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setSelectedTask(task)}>
+                      <DropdownMenuItem onClick={async () => {
+                        // Fetch full task details including submission data
+                        try {
+                          const response = await taskAPI.getById(task._id);
+                          setSelectedTask(response.data.data.task);
+                        } catch (error) {
+                          // Fallback to task from list
+                          setSelectedTask(task);
+                        }
+                      }}>
                         View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditClick(task)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit Task
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleUpdateStatus(task._id, "in-progress")}
@@ -565,6 +874,7 @@ export default function TasksPage() {
                         onClick={() => handleDeleteTask(task._id)}
                         className="text-destructive"
                       >
+                        <Trash2 className="w-4 h-4 mr-2" />
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -578,7 +888,7 @@ export default function TasksPage() {
 
       {/* Task Detail Sheet */}
       <Sheet open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <SheetContent className="w-full sm:max-w-lg">
+        <SheetContent className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Task Details</SheetTitle>
           </SheetHeader>
@@ -602,9 +912,69 @@ export default function TasksPage() {
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2">Description</h4>
-                <p className="text-sm">{selectedTask.description || "No description"}</p>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2">Task Description</h4>
+                <p className="text-sm whitespace-pre-wrap">{selectedTask.description || "No description"}</p>
               </div>
+
+              {/* Submission Details */}
+              {(selectedTask.submissionDescription || (selectedTask.attachments && selectedTask.attachments.length > 0)) && (
+                <div className="border-t border-border pt-4">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Employee Submission
+                  </h4>
+                  {selectedTask.submissionDescription && (
+                    <div className="mb-4">
+                      <p className="text-sm whitespace-pre-wrap bg-secondary/50 p-3 rounded-lg">
+                        {selectedTask.submissionDescription}
+                      </p>
+                      {selectedTask.submissionDate && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Submitted on: {formatDate(selectedTask.submissionDate)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {selectedTask.attachments && selectedTask.attachments.length > 0 && (
+                    <div>
+                      <h5 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                        <ImageIcon className="w-3 h-3" />
+                        Submitted Images ({selectedTask.attachments.length})
+                      </h5>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {selectedTask.attachments.map((attachment, index) => {
+                          // Construct full image URL
+                          let imageUrl = attachment.url;
+                          if (!imageUrl.startsWith('http')) {
+                            const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                            const cleanBaseUrl = baseUrl.replace('/api', '');
+                            imageUrl = `${cleanBaseUrl}${attachment.url}`;
+                          }
+                          return (
+                            <div key={index} className="relative group">
+                              <a
+                                href={imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block"
+                              >
+                                <img
+                                  src={imageUrl}
+                                  alt={attachment.name || `Image ${index + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg border border-border hover:border-primary transition-colors cursor-pointer"
+                                />
+                              </a>
+                              <p className="text-xs text-muted-foreground mt-1 truncate">
+                                {attachment.name || `Image ${index + 1}`}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -638,6 +1008,17 @@ export default function TasksPage() {
 
               <div className="flex gap-3 pt-4">
                 <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    handleEditClick(selectedTask);
+                    setSelectedTask(null);
+                  }}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Task
+                </Button>
+                <Button
                   variant="destructive"
                   className="flex-1"
                   onClick={() => {
@@ -645,6 +1026,7 @@ export default function TasksPage() {
                     setSelectedTask(null);
                   }}
                 >
+                  <Trash2 className="w-4 h-4 mr-2" />
                   Delete Task
                 </Button>
               </div>

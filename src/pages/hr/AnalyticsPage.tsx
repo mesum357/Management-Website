@@ -2,9 +2,6 @@ import { useState, useEffect } from "react";
 import {
   Users,
   TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Clock,
   Calendar,
   Briefcase,
   Building,
@@ -56,9 +53,6 @@ export default function AnalyticsPage() {
   
   // Stats
   const [totalEmployees, setTotalEmployees] = useState(0);
-  const [attritionRate, setAttritionRate] = useState(0);
-  const [avgTenure, setAvgTenure] = useState("0 yrs");
-  const [avgSalary, setAvgSalary] = useState("$0");
   
   // Charts data
   const [headcountData, setHeadcountData] = useState<any[]>([]);
@@ -83,19 +77,6 @@ export default function AnalyticsPage() {
       // Fetch employee stats
       const employeeStatsRes = await employeeAPI.getStats();
       const employeeStats = employeeStatsRes.data.data;
-      
-      // Calculate attrition rate (simplified - could be improved)
-      const attrition = employeeStats.onLeave || 0;
-      const total = employeeStats.totalEmployees || 1;
-      setAttritionRate(((attrition / total) * 100).toFixed(1));
-
-      // Calculate average tenure (simplified - assuming based on dateOfJoining)
-      // This would need actual calculation from employee data
-      setAvgTenure("2.8 yrs");
-
-      // Calculate average salary
-      // This would need salary data from employees
-      setAvgSalary("$72,500");
 
       // Department distribution
       if (employeeStats.departmentStats) {
@@ -253,33 +234,13 @@ export default function AnalyticsPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
         <StatCard
           title="Total Headcount"
           value={totalEmployees.toString()}
           icon={Users}
           variant="primary"
           trend={{ value: 3.5, isPositive: true }}
-        />
-        <StatCard
-          title="Attrition Rate"
-          value={`${attritionRate}%`}
-          icon={TrendingDown}
-          variant="success"
-          trend={{ value: 0.8, isPositive: true }}
-        />
-        <StatCard
-          title="Avg. Tenure"
-          value={avgTenure}
-          icon={Clock}
-          variant="default"
-        />
-        <StatCard
-          title="Avg. Salary"
-          value={avgSalary}
-          icon={DollarSign}
-          variant="default"
-          trend={{ value: 5.2, isPositive: true }}
         />
       </div>
 

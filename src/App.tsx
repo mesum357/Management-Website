@@ -26,7 +26,6 @@ import BossDashboard from "@/pages/boss/BossDashboard";
 import MeetingsPage from "@/pages/boss/MeetingsPage";
 import TasksPage from "@/pages/boss/TasksPage";
 import BossNoticesPage from "@/pages/boss/BossNoticesPage";
-import AnalyticsPage from "@/pages/hr/AnalyticsPage";
 
 import NotFound from "./pages/NotFound";
 

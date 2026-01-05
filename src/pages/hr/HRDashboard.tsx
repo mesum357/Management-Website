@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Users,
   UserPlus,
-  CalendarCheck,
   Clock,
   AlertTriangle,
   Briefcase,
@@ -26,7 +25,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { analyticsAPI, employeeAPI, leaveAPI, attendanceAPI, recruitmentAPI } from "@/lib/api";
+import { analyticsAPI, employeeAPI, leaveAPI, attendanceAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface LeaveRequest {
@@ -50,7 +49,6 @@ export default function HRDashboard() {
   // Stats
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [newHires, setNewHires] = useState(0);
-  const [pendingInterviews, setPendingInterviews] = useState(0);
   const [pendingLeaves, setPendingLeaves] = useState(0);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [recentLeaveRequests, setRecentLeaveRequests] = useState<LeaveRequest[]>([]);
@@ -91,28 +89,48 @@ export default function HRDashboard() {
         }))
       );
 
-      // Generate weekly attendance chart (simplified - using today's stats)
-      const today = new Date();
-      const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const weekData = weekDays.map((day, index) => {
-        const dayDate = new Date(today);
-        dayDate.setDate(today.getDate() - (today.getDay() - 1 - index));
+      // Fetch real weekly attendance data
+      try {
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        const attendanceReportRes = await analyticsAPI.getAttendanceReport({
+          startDate: weekAgo.toISOString(),
+          endDate: new Date().toISOString()
+        });
         
-        // Generate mock data based on total employees
-        const present = Math.floor((stats.totalEmployees || 0) * (0.85 + Math.random() * 0.1));
-        const absent = (stats.totalEmployees || 0) - present;
+        const dailyData = attendanceReportRes.data.data.dailyAttendance || [];
+        const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         
-        return {
-          name: day,
-          present,
-          absent
-        };
-      });
-      setAttendanceData(weekData);
+        // Map daily data to week days
+        const weekData = weekDays.map((day, index) => {
+          const dayDate = new Date();
+          dayDate.setDate(dayDate.getDate() - (dayDate.getDay() - 1 - index));
+          const dateStr = dayDate.toISOString().split('T')[0];
+          
+          const dayData = dailyData.find((d: any) => d._id === dateStr);
+          if (dayData) {
+            return {
+              name: day,
+              present: dayData.present || 0,
+              absent: (dayData.absent || 0) + (dayData.onLeave || 0)
+            };
+          }
+          
+          // If no data for this day, use 0
+          return {
+            name: day,
+            present: 0,
+            absent: 0
+          };
+        });
+        setAttendanceData(weekData);
+      } catch (err) {
+        console.error('Error fetching attendance data:', err);
+        // Fallback to empty data
+        const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        setAttendanceData(weekDays.map(day => ({ name: day, present: 0, absent: 0 })));
+      }
 
-      // Fetch recruitment/interview data (if available)
-      // For now, set to 0 as recruitment API may not have this endpoint
-      setPendingInterviews(0);
 
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
@@ -168,13 +186,6 @@ export default function HRDashboard() {
           subtitle="This month"
           icon={UserPlus}
           variant="success"
-        />
-        <StatCard
-          title="Pending Interviews"
-          value={pendingInterviews.toString()}
-          subtitle="Scheduled this week"
-          icon={CalendarCheck}
-          variant="warning"
         />
         <StatCard
           title="Leave Requests"

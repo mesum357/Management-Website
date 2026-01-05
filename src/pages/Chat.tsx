@@ -18,9 +18,11 @@ import {
   Circle,
   Loader2,
   AlertCircle,
+  UserPlus,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { chatAPI } from "@/lib/api";
+import { chatAPI, messageRequestAPI } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { io, Socket } from "socket.io-client";
 
@@ -79,6 +81,7 @@ const Chat = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
+  const [messageRequests, setMessageRequests] = useState<any[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -118,6 +121,23 @@ const Chat = () => {
       
       // Update chat list
       fetchChats();
+    });
+
+    // Listen for new message requests (boss only)
+    socket.on('newMessageRequest', (data: { requestId: string; from: any }) => {
+      if (user?.role === 'boss') {
+        fetchMessageRequests();
+      }
+    });
+
+    // Listen for message request accepted/rejected
+    socket.on('messageRequestAccepted', (data: { requestId: string; chatId: string }) => {
+      fetchMessageRequests();
+      fetchChats();
+    });
+
+    socket.on('messageRequestRejected', (data: { requestId: string }) => {
+      fetchMessageRequests();
     });
 
     // Handle typing indicators
@@ -161,11 +181,54 @@ const Chat = () => {
 
       setUsers(usersRes.data.data.users || []);
       setChats(chatsRes.data.data.chats || []);
+
+      // Fetch message requests if boss
+      if (user?.role === 'boss') {
+        fetchMessageRequests();
+      }
     } catch (err: any) {
       console.error('Error fetching chat data:', err);
       setError(err.response?.data?.message || 'Failed to load chat data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMessageRequests = async () => {
+    try {
+      const res = await messageRequestAPI.getAll();
+      setMessageRequests(res.data.data.incoming || []);
+    } catch (err: any) {
+      console.error('Error fetching message requests:', err);
+    }
+  };
+
+  const handleAcceptRequest = async (requestId: string) => {
+    try {
+      const res = await messageRequestAPI.accept(requestId);
+      if (res.data.data.chat) {
+        // Load the chat
+        const chat = res.data.data.chat;
+        const messagesRes = await chatAPI.getById(chat._id);
+        const chatWithMessages = messagesRes.data.data.chat;
+        setSelectedChat(chatWithMessages);
+        setMessages(chatWithMessages.messages?.filter((m: Message) => !m.isDeleted) || []);
+      }
+      fetchMessageRequests();
+      fetchChats();
+    } catch (err: any) {
+      console.error('Error accepting request:', err);
+      setError(err.response?.data?.message || 'Failed to accept request');
+    }
+  };
+
+  const handleRejectRequest = async (requestId: string) => {
+    try {
+      await messageRequestAPI.reject(requestId);
+      fetchMessageRequests();
+    } catch (err: any) {
+      console.error('Error rejecting request:', err);
+      setError(err.response?.data?.message || 'Failed to reject request');
     }
   };
 
@@ -373,6 +436,54 @@ const Chat = () => {
         
         <ScrollArea className="flex-1">
           <div className="p-2">
+            {/* Message Requests (Boss only) */}
+            {user?.role === 'boss' && messageRequests.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-medium text-muted-foreground px-3 py-2">Message Requests</p>
+                {messageRequests.map((request: any) => {
+                  const requester = request.from;
+                  const requesterName = requester.employee 
+                    ? `${requester.employee.firstName} ${requester.employee.lastName}`
+                    : requester.email.split('@')[0];
+                  
+                  return (
+                    <div
+                      key={request._id}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30 mb-2"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-primary">
+                          {getAvatarInitials(requesterName)}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{requesterName}</p>
+                        <p className="text-xs text-muted-foreground truncate">Wants to message you</p>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => handleAcceptRequest(request._id)}
+                        >
+                          <Check className="w-4 h-4 text-success" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => handleRejectRequest(request._id)}
+                        >
+                          <X className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Existing Chats */}
             {filteredChats.length > 0 && (
               <div className="mb-4">

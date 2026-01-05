@@ -237,5 +237,17 @@ export const chatAPI = {
     api.get('/chat/users'),
 };
 
+// Message Request API
+export const messageRequestAPI = {
+  getAll: () =>
+    api.get('/message-requests'),
+  create: (to: string, message?: string) =>
+    api.post('/message-requests', { to, message }),
+  accept: (id: string) =>
+    api.put(`/message-requests/${id}/accept`),
+  reject: (id: string) =>
+    api.put(`/message-requests/${id}/reject`),
+};
+
 export default api;
 
