@@ -36,7 +36,6 @@ interface NavItem {
 const hrNavItems: NavItem[] = [
   { label: "Dashboard", path: "/hr", icon: LayoutDashboard },
   { label: "Employees", path: "/hr/employees", icon: Users },
-  { label: "Recruitment", path: "/hr/recruitment", icon: Briefcase },
   { label: "Attendance", path: "/hr/attendance", icon: Clock },
   { label: "Leave Management", path: "/hr/leaves", icon: Calendar },
   { label: "Notice Board", path: "/hr/notices", icon: Megaphone },

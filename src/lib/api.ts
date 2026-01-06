@@ -75,6 +75,10 @@ export const employeeAPI = {
     api.put(`/employees/${id}`, data),
   delete: (id: string) =>
     api.delete(`/employees/${id}`),
+  terminate: (id: string) =>
+    api.put(`/employees/${id}/terminate`),
+  freeze: (id: string, isActive: boolean) =>
+    api.put(`/employees/${id}/freeze`, { isActive }),
   getDirectory: () =>
     api.get('/employees/directory'),
   getStats: () =>

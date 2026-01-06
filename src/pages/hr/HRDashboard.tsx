@@ -10,6 +10,7 @@ import {
   TrendingUp,
   ArrowRight,
   Loader2,
+  CalendarCheck,
 } from "lucide-react";
 import { StatCard } from "@/components/shared/StatCard";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -262,12 +263,6 @@ export default function HRDashboard() {
                 variant="primary"
               />
               <QuickActionCard
-                title="Schedule Interview"
-                description="Set up candidate interviews"
-                icon={CalendarCheck}
-                onClick={() => navigate("/hr/recruitment")}
-              />
-              <QuickActionCard
                 title="Post Notice"
                 description="Publish company announcement"
                 icon={Megaphone}
@@ -278,6 +273,12 @@ export default function HRDashboard() {
                 description="HR performance metrics"
                 icon={TrendingUp}
                 onClick={() => navigate("/hr/analytics")}
+              />
+              <QuickActionCard
+                title="Leave Management"
+                description="Manage employee leave requests"
+                icon={Clock}
+                onClick={() => navigate("/hr/leaves")}
               />
             </div>
           </div>

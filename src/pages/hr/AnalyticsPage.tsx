@@ -89,7 +89,7 @@ export default function AnalyticsPage() {
       }
 
       // Generate headcount trend (last 12 months)
-      const headcountTrend = generateHeadcountTrend(total);
+      const headcountTrend = generateHeadcountTrend(dashboardStats.totalEmployees || 0);
       setHeadcountData(headcountTrend);
 
       // Generate hiring data (last 12 months)
