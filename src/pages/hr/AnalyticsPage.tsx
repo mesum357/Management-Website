@@ -69,13 +69,18 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       
-      // Fetch dashboard stats
-      const dashboardRes = await analyticsAPI.getDashboard();
+      // Fetch all data in parallel for better performance
+      const [dashboardRes, employeeStatsRes, leaveRes] = await Promise.all([
+        analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
+        employeeAPI.getStats().catch(() => ({ data: { data: {} } })),
+        leaveAPI.getAll().catch(() => ({ data: { data: { leaves: [] } } }))
+      ]);
+
+      // Process dashboard stats
       const dashboardStats = dashboardRes.data.data;
       setTotalEmployees(dashboardStats.totalEmployees || 0);
 
-      // Fetch employee stats
-      const employeeStatsRes = await employeeAPI.getStats();
+      // Process employee stats
       const employeeStats = employeeStatsRes.data.data;
 
       // Department distribution
@@ -109,8 +114,7 @@ export default function AnalyticsPage() {
       }) || [];
       setAttendanceData(deptAttendance);
 
-      // Fetch leave report
-      const leaveRes = await leaveAPI.getAll();
+      // Process leave report
       const leaves = leaveRes.data.data.leaves || [];
       
       // Calculate leave summary

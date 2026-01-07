@@ -75,6 +75,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
 
+    // Check if we have cached user data to avoid blocking UI
+    const cachedUser = localStorage.getItem('admin_user');
+    if (cachedUser) {
+      try {
+        const userData = JSON.parse(cachedUser);
+        // Only allow HR, Boss, Manager, and Admin roles in this portal
+        const allowedRoles = ['hr', 'boss', 'manager', 'admin'];
+        if (allowedRoles.includes(userData.role)) {
+          setUser(userData);
+          setToken(storedToken);
+          setIsLoading(false);
+          // Verify token in background
+          verifyTokenInBackground(storedToken);
+          return;
+        }
+      } catch (err) {
+        // Invalid cached data, continue to fetch from server
+      }
+    }
+
     try {
       const response = await authAPI.getMe();
       const userData = response.data.data.user;
@@ -87,6 +107,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       setUser(userData);
       setToken(storedToken);
+      // Update cache
+      localStorage.setItem('admin_user', JSON.stringify(userData));
     } catch (error) {
       localStorage.removeItem('admin_token');
       localStorage.removeItem('admin_user');
@@ -97,24 +119,96 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Verify token in background without blocking UI
+  const verifyTokenInBackground = async (token: string) => {
+    try {
+      const response = await authAPI.getMe();
+      const userData = response.data.data.user;
+      const allowedRoles = ['hr', 'boss', 'manager', 'admin'];
+      if (allowedRoles.includes(userData.role)) {
+        setUser(userData);
+        localStorage.setItem('admin_user', JSON.stringify(userData));
+      } else {
+        throw new Error('Unauthorized role');
+      }
+    } catch (error) {
+      // Token invalid, clear auth
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      setToken(null);
+      setUser(null);
+    }
+  };
+
   useEffect(() => {
     checkAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
+    console.log('[AuthContext] Login attempt started', { email, passwordLength: password?.length });
+    
     try {
+      console.log('[AuthContext] Calling authAPI.login...');
       const response = await authAPI.login(email, password);
+      console.log('[AuthContext] Login API response received', { 
+        hasData: !!response?.data, 
+        hasDataData: !!response?.data?.data,
+        success: response?.data?.success 
+      });
+      
+      // Check if response has the expected structure
+      if (!response?.data) {
+        console.error('[AuthContext] No response.data found');
+        return {
+          success: false,
+          message: 'Invalid response from server - no data'
+        };
+      }
+      
+      if (!response.data.success) {
+        console.error('[AuthContext] Login unsuccessful in response', response.data);
+        return {
+          success: false,
+          message: response.data.message || 'Login failed'
+        };
+      }
+      
+      if (!response.data.data) {
+        console.error('[AuthContext] No response.data.data found');
+        return {
+          success: false,
+          message: 'Invalid response from server - missing data'
+        };
+      }
+      
       const { token: newToken, user: userData } = response.data.data;
+      console.log('[AuthContext] Extracted token and user', { 
+        hasToken: !!newToken, 
+        hasUser: !!userData,
+        userRole: userData?.role,
+        userEmail: userData?.email
+      });
+      
+      // Validate token and user data
+      if (!newToken || !userData) {
+        console.error('[AuthContext] Missing token or user data', { hasToken: !!newToken, hasUser: !!userData });
+        return {
+          success: false,
+          message: 'Invalid login response - missing token or user data'
+        };
+      }
       
       // Only allow HR, Boss, Manager, and Admin roles
       const allowedRoles = ['hr', 'boss', 'manager', 'admin'];
       if (!allowedRoles.includes(userData.role)) {
+        console.error('[AuthContext] User role not allowed', { role: userData.role, allowedRoles });
         return {
           success: false,
-          message: 'Access denied. This portal is only for HR, Manager, and Boss roles.'
+          message: `Access denied. This portal is only for HR, Manager, and Boss roles. Your role: ${userData.role}`
         };
       }
       
+      console.log('[AuthContext] Login successful, storing credentials');
       // Store with different key to separate from employee portal
       localStorage.setItem('admin_token', newToken);
       localStorage.setItem('admin_user', JSON.stringify(userData));
@@ -122,11 +216,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setToken(newToken);
       setUser(userData);
       
+      console.log('[AuthContext] Login completed successfully');
       return { success: true };
     } catch (error: any) {
+      console.error('[AuthContext] Login error caught:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method
+        }
+      });
+      
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error || 
+                          error.message || 
+                          'Login failed';
+      
       return {
         success: false,
-        message: error.response?.data?.message || 'Login failed'
+        message: errorMessage
       };
     }
   };

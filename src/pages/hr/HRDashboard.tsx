@@ -62,21 +62,32 @@ export default function HRDashboard() {
     try {
       setLoading(true);
       
-      // Fetch dashboard stats
-      const dashboardRes = await analyticsAPI.getDashboard();
+      // Prepare date for attendance report
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      
+      // Fetch all data in parallel for better performance
+      const [dashboardRes, employeeStatsRes, leavesRes, attendanceReportRes] = await Promise.all([
+        analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
+        employeeAPI.getStats().catch(() => ({ data: { data: {} } })),
+        leaveAPI.getPending().catch(() => ({ data: { data: { leaves: [] } } })),
+        analyticsAPI.getAttendanceReport({
+          startDate: weekAgo.toISOString(),
+          endDate: new Date().toISOString()
+        }).catch(() => ({ data: { data: { dailyAttendance: [] } } }))
+      ]);
+      
+      // Process dashboard stats
       const stats = dashboardRes.data.data;
       setTotalEmployees(stats.totalEmployees || 0);
       setPendingLeaves(stats.pendingLeaves || 0);
 
-      // Fetch employee stats for new hires (this month)
-      const employeeStatsRes = await employeeAPI.getStats();
+      // Process employee stats
       const employeeStats = employeeStatsRes.data.data;
-      
       // Calculate new hires this month (simplified)
       setNewHires(0); // Would need historical data for accurate count
 
-      // Fetch pending leave requests
-      const leavesRes = await leaveAPI.getPending();
+      // Process pending leave requests
       const pendingLeavesData = leavesRes.data.data.leaves || [];
       setRecentLeaveRequests(
         pendingLeavesData.slice(0, 3).map((leave: any) => ({
@@ -90,48 +101,33 @@ export default function HRDashboard() {
         }))
       );
 
-      // Fetch real weekly attendance data
-      try {
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const attendanceReportRes = await analyticsAPI.getAttendanceReport({
-          startDate: weekAgo.toISOString(),
-          endDate: new Date().toISOString()
-        });
+      // Process attendance data
+      const dailyData = attendanceReportRes.data.data.dailyAttendance || [];
+      const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      
+      // Map daily data to week days
+      const weekData = weekDays.map((day, index) => {
+        const dayDate = new Date();
+        dayDate.setDate(dayDate.getDate() - (dayDate.getDay() - 1 - index));
+        const dateStr = dayDate.toISOString().split('T')[0];
         
-        const dailyData = attendanceReportRes.data.data.dailyAttendance || [];
-        const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        
-        // Map daily data to week days
-        const weekData = weekDays.map((day, index) => {
-          const dayDate = new Date();
-          dayDate.setDate(dayDate.getDate() - (dayDate.getDay() - 1 - index));
-          const dateStr = dayDate.toISOString().split('T')[0];
-          
-          const dayData = dailyData.find((d: any) => d._id === dateStr);
-          if (dayData) {
-            return {
-              name: day,
-              present: dayData.present || 0,
-              absent: (dayData.absent || 0) + (dayData.onLeave || 0)
-            };
-          }
-          
-          // If no data for this day, use 0
+        const dayData = dailyData.find((d: any) => d._id === dateStr);
+        if (dayData) {
           return {
             name: day,
-            present: 0,
-            absent: 0
+            present: dayData.present || 0,
+            absent: (dayData.absent || 0) + (dayData.onLeave || 0)
           };
-        });
-        setAttendanceData(weekData);
-      } catch (err) {
-        console.error('Error fetching attendance data:', err);
-        // Fallback to empty data
-        const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        setAttendanceData(weekDays.map(day => ({ name: day, present: 0, absent: 0 })));
-      }
-
+        }
+        
+        // If no data for this day, use 0
+        return {
+          name: day,
+          present: 0,
+          absent: 0
+        };
+      });
+      setAttendanceData(weekData);
 
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);

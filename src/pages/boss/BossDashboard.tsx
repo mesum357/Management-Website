@@ -51,100 +51,86 @@ export default function BossDashboard() {
     try {
       setLoading(true);
       
-      // Fetch dashboard stats
-      const dashboardRes = await analyticsAPI.getDashboard();
-      const stats = dashboardRes.data.data;
-      setTotalEmployees(stats.totalEmployees || 0);
-      setTodayAttendance(stats.presentToday || 0);
-      setAttendanceRate(stats.attendanceRate || 0);
-
-      // Fetch task stats
-      try {
-        const taskStatsRes = await taskAPI.getStats();
-        const taskStats = taskStatsRes.data.data;
-        const activeCount = (taskStats.byStatus || []).reduce((sum: number, item: any) => {
-          if (item._id !== 'completed' && item._id !== 'cancelled') {
-            return sum + (item.count || 0);
-          }
-          return sum;
-        }, 0);
-        setActiveTasks(activeCount);
-      } catch (err) {
-        console.error('Error fetching task stats:', err);
-      }
-
-      // Fetch real attendance trend data (last 4 weeks)
-      try {
-        const fourWeeksAgo = new Date();
-        fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
-        const attendanceReportRes = await analyticsAPI.getAttendanceReport({
+      // Prepare dates
+      const fourWeeksAgo = new Date();
+      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      // Fetch all data in parallel for better performance
+      const [dashboardRes, taskStatsRes, attendanceTrendRes, employeeStatsRes, attendanceDeptRes] = await Promise.all([
+        analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
+        taskAPI.getStats().catch(() => ({ data: { data: { byStatus: [] } } })),
+        analyticsAPI.getAttendanceReport({
           startDate: fourWeeksAgo.toISOString(),
           endDate: new Date().toISOString()
-        });
-        
-        const dailyData = attendanceReportRes.data.data.dailyAttendance || [];
-        const totalEmployees = stats.totalEmployees || 1;
-        
-        // Group by week
-        const weeklyData: any = {};
-        dailyData.forEach((day: any) => {
-          const date = new Date(day._id);
-          const weekNum = Math.floor((new Date().getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
-          if (weekNum < 4) {
-            const weekKey = `W${4 - weekNum}`;
-            if (!weeklyData[weekKey]) {
-              weeklyData[weekKey] = { present: 0, total: 0 };
-            }
-            weeklyData[weekKey].present += day.present || 0;
-            weeklyData[weekKey].total += (day.present || 0) + (day.absent || 0) + (day.onLeave || 0);
-          }
-        });
-        
-        const trendData = ['W1', 'W2', 'W3', 'W4'].map(week => {
-          const weekData = weeklyData[week] || { present: 0, total: 0 };
-          const rate = weekData.total > 0 
-            ? Math.round((weekData.present / weekData.total) * 100)
-            : attendanceRate;
-          return { week, rate: Math.max(80, Math.min(100, rate)) };
-        });
-        setAttendanceTrend(trendData);
-      } catch (err) {
-        console.error('Error fetching attendance trend:', err);
-        // Fallback to current rate
-        setAttendanceTrend([
-          { week: "W1", rate: attendanceRate },
-          { week: "W2", rate: attendanceRate },
-          { week: "W3", rate: attendanceRate },
-          { week: "W4", rate: attendanceRate },
-        ]);
-      }
-
-      // Get real department performance from attendance data
-      try {
-        const employeeStatsRes = await employeeAPI.getStats();
-        const deptStats = employeeStatsRes.data.data.departmentStats || [];
-        
-        // Fetch attendance by department
-        const attendanceReportRes = await analyticsAPI.getAttendanceReport({
-          startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(),
+        }).catch(() => ({ data: { data: { dailyAttendance: [] } } })),
+        employeeAPI.getStats().catch(() => ({ data: { data: { departmentStats: [] } } })),
+        analyticsAPI.getAttendanceReport({
+          startDate: thirtyDaysAgo.toISOString(),
           endDate: new Date().toISOString()
-        }).catch(() => ({ data: { data: { dailyAttendance: [] } } }));
-        
-        // Calculate performance score based on department employee count and attendance
-        const perfData = deptStats.map((dept: any) => {
-          // Base score on employee count (more employees = higher responsibility)
-          // In a real scenario, you'd calculate this based on actual performance metrics
-          const baseScore = 75 + Math.min(20, (dept.count || 0) * 2);
-          return {
-            dept: dept.department || dept.name || "Unknown",
-            score: Math.min(100, baseScore)
-          };
-        });
-        setDepartmentPerformance(perfData.slice(0, 5));
-      } catch (err) {
-        console.error('Error fetching department stats:', err);
-        setDepartmentPerformance([]);
-      }
+        }).catch(() => ({ data: { data: { dailyAttendance: [] } } }))
+      ]);
+      
+      // Process dashboard stats
+      const stats = dashboardRes.data.data;
+      const totalEmployees = stats.totalEmployees || 0;
+      const attendanceRate = stats.attendanceRate || 0;
+      setTotalEmployees(totalEmployees);
+      setTodayAttendance(stats.presentToday || 0);
+      setAttendanceRate(attendanceRate);
+
+      // Process task stats
+      const taskStats = taskStatsRes.data.data;
+      const activeCount = (taskStats.byStatus || []).reduce((sum: number, item: any) => {
+        if (item._id !== 'completed' && item._id !== 'cancelled') {
+          return sum + (item.count || 0);
+        }
+        return sum;
+      }, 0);
+      setActiveTasks(activeCount);
+
+      // Process attendance trend data
+      const dailyData = attendanceTrendRes.data.data.dailyAttendance || [];
+      
+      // Group by week
+      const weeklyData: any = {};
+      dailyData.forEach((day: any) => {
+        const date = new Date(day._id);
+        const weekNum = Math.floor((new Date().getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        if (weekNum < 4) {
+          const weekKey = `W${4 - weekNum}`;
+          if (!weeklyData[weekKey]) {
+            weeklyData[weekKey] = { present: 0, total: 0 };
+          }
+          weeklyData[weekKey].present += day.present || 0;
+          weeklyData[weekKey].total += (day.present || 0) + (day.absent || 0) + (day.onLeave || 0);
+        }
+      });
+      
+      const trendData = ['W1', 'W2', 'W3', 'W4'].map(week => {
+        const weekData = weeklyData[week] || { present: 0, total: 0 };
+        const rate = weekData.total > 0 
+          ? Math.round((weekData.present / weekData.total) * 100)
+          : attendanceRate;
+        return { week, rate: Math.max(80, Math.min(100, rate)) };
+      });
+      setAttendanceTrend(trendData);
+
+      // Process department performance
+      const deptStats = employeeStatsRes.data.data.departmentStats || [];
+      
+      // Calculate performance score based on department employee count and attendance
+      const perfData = deptStats.map((dept: any) => {
+        // Base score on employee count (more employees = higher responsibility)
+        // In a real scenario, you'd calculate this based on actual performance metrics
+        const baseScore = 75 + Math.min(20, (dept.count || 0) * 2);
+        return {
+          dept: dept.department || dept.name || "Unknown",
+          score: Math.min(100, baseScore)
+        };
+      });
+      setDepartmentPerformance(perfData.slice(0, 5));
 
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);

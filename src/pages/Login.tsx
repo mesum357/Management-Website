@@ -27,44 +27,68 @@ const Login = () => {
     e.preventDefault();
     setError("");
     
+    console.log('[Login] Form submitted', { email, passwordLength: password?.length });
+    
     if (!email || !password) {
       setError("Please enter both email and password");
       return;
     }
 
     setIsLoading(true);
+    console.log('[Login] Calling login function...');
     
-    const result = await login(email, password);
-    
-    if (result.success) {
-      toast({
-        title: "Welcome!",
-        description: "Login successful",
-      });
+    try {
+      const result = await login(email, password);
+      console.log('[Login] Login result received', { success: result.success, message: result.message });
       
-      // Get the user from localStorage since state might not be updated yet
-      const storedUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
-      
-      // Redirect based on role
-      if (from) {
-        navigate(from, { replace: true });
-      } else if (storedUser.role === 'boss' || storedUser.role === 'manager') {
-        navigate('/boss', { replace: true });
-      } else if (storedUser.role === 'hr' || storedUser.role === 'admin') {
-        navigate('/hr', { replace: true });
+      if (result.success) {
+        console.log('[Login] Login successful, redirecting...');
+        toast({
+          title: "Welcome!",
+          description: "Login successful",
+        });
+        
+        // Get the user from localStorage since state might not be updated yet
+        const storedUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+        console.log('[Login] Stored user from localStorage', { role: storedUser.role });
+        
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          // Redirect based on role
+          if (from) {
+            console.log('[Login] Redirecting to from path:', from);
+            navigate(from, { replace: true });
+          } else if (storedUser.role === 'boss' || storedUser.role === 'manager') {
+            console.log('[Login] Redirecting to boss dashboard');
+            navigate('/boss', { replace: true });
+          } else if (storedUser.role === 'hr' || storedUser.role === 'admin') {
+            console.log('[Login] Redirecting to HR dashboard');
+            navigate('/hr', { replace: true });
+          } else {
+            console.log('[Login] Default redirect to HR dashboard');
+            navigate('/hr', { replace: true });
+          }
+        }, 100);
       } else {
-        navigate('/hr', { replace: true });
+        console.error('[Login] Login failed', result.message);
+        setError(result.message || "Login failed");
+        toast({
+          title: "Login Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+        setIsLoading(false);
       }
-    } else {
-      setError(result.message || "Login failed");
+    } catch (error: any) {
+      console.error('[Login] Unexpected error during login', error);
+      setError("An unexpected error occurred. Please try again.");
       toast({
-        title: "Login Failed",
-        description: result.message,
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (

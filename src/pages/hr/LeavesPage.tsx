@@ -11,6 +11,10 @@ import {
   Loader2,
   RefreshCw,
   AlertCircle,
+  Settings,
+  Save,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
@@ -32,9 +36,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { leaveAPI, departmentAPI } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface LeaveRequest {
   _id: string;
@@ -66,7 +73,18 @@ interface Department {
   name: string;
 }
 
+interface LeavePolicy {
+  _id: string;
+  leaveType: string;
+  monthlyLimit: number;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function LeavesPage() {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
@@ -75,6 +93,16 @@ export default function LeavesPage() {
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Leave Policy state
+  const [leavePolicies, setLeavePolicies] = useState<LeavePolicy[]>([]);
+  const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
+  const [policyForm, setPolicyForm] = useState({
+    leaveType: '',
+    monthlyLimit: 0,
+    description: ''
+  });
+  const [policyLoading, setPolicyLoading] = useState(false);
   
   // Filters
   const [statusFilter, setStatusFilter] = useState("all");
@@ -91,6 +119,7 @@ export default function LeavesPage() {
 
   useEffect(() => {
     fetchData();
+    fetchLeavePolicies();
   }, [statusFilter, typeFilter]);
 
   const fetchData = async () => {
@@ -190,15 +219,148 @@ export default function LeavesPage() {
     });
   };
 
-  const formatLeaveType = (type: string) => {
-    return type.charAt(0).toUpperCase() + type.slice(1) + ' Leave';
-  };
-
   const getEmployeeDepartment = (employee: LeaveRequest['employee']) => {
     if (typeof employee.department === 'object' && employee.department) {
       return employee.department.name;
     }
     return 'N/A';
+  };
+
+  const fetchLeavePolicies = async () => {
+    try {
+      setPolicyLoading(true);
+      const response = await leaveAPI.getPolicies();
+      console.log('[LeavesPage] Leave policies response:', response.data);
+      const policies = response.data?.data?.policies || [];
+      setLeavePolicies(policies);
+      
+      if (policies.length === 0) {
+        console.log('[LeavesPage] No leave policies found - this is normal for first time setup');
+      }
+    } catch (err: any) {
+      console.error('[LeavesPage] Error fetching leave policies:', err);
+      console.error('[LeavesPage] Error response:', err.response?.data);
+      
+      // If it's a 500 error, it might be a backend issue - show a more helpful message
+      if (err.response?.status === 500) {
+        toast({
+          title: "Server Error",
+          description: err.response?.data?.message || "Failed to load leave policies. Please check the server logs.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: err.response?.data?.message || "Failed to load leave policies",
+          variant: "destructive"
+        });
+      }
+      
+      // Set empty array on error so UI doesn't break
+      setLeavePolicies([]);
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
+
+  const handleSavePolicy = async () => {
+    if (!policyForm.leaveType || policyForm.monthlyLimit < 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setPolicyLoading(true);
+      await leaveAPI.createPolicy(policyForm);
+      toast({
+        title: "Success",
+        description: "Leave policy saved successfully"
+      });
+      setEditingPolicy(null);
+      setPolicyForm({ leaveType: '', monthlyLimit: 0, description: '' });
+      fetchLeavePolicies();
+    } catch (err: any) {
+      console.error('Error saving leave policy:', err);
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to save leave policy",
+        variant: "destructive"
+      });
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
+
+  const handleEditPolicy = (policy: LeavePolicy) => {
+    setEditingPolicy(policy);
+    setPolicyForm({
+      leaveType: policy.leaveType,
+      monthlyLimit: policy.monthlyLimit,
+      description: policy.description || ''
+    });
+  };
+
+  const handleUpdatePolicy = async () => {
+    if (!editingPolicy || policyForm.monthlyLimit < 0) {
+      return;
+    }
+
+    try {
+      setPolicyLoading(true);
+      await leaveAPI.updatePolicy(editingPolicy._id, {
+        monthlyLimit: policyForm.monthlyLimit,
+        description: policyForm.description
+      });
+      toast({
+        title: "Success",
+        description: "Leave policy updated successfully"
+      });
+      setEditingPolicy(null);
+      setPolicyForm({ leaveType: '', monthlyLimit: 0, description: '' });
+      fetchLeavePolicies();
+    } catch (err: any) {
+      console.error('Error updating leave policy:', err);
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to update leave policy",
+        variant: "destructive"
+      });
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
+
+  const handleDeletePolicy = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this leave policy?')) {
+      return;
+    }
+
+    try {
+      setPolicyLoading(true);
+      await leaveAPI.deletePolicy(id);
+      toast({
+        title: "Success",
+        description: "Leave policy deleted successfully"
+      });
+      fetchLeavePolicies();
+    } catch (err: any) {
+      console.error('Error deleting leave policy:', err);
+      toast({
+        title: "Error",
+        description: err.response?.data?.message || "Failed to delete leave policy",
+        variant: "destructive"
+      });
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
+
+  const formatLeaveType = (type: string) => {
+    return type.charAt(0).toUpperCase() + type.slice(1) + ' Leave';
   };
 
   // Filter by department on client side
@@ -293,6 +455,10 @@ export default function LeavesPage() {
             Pending ({pendingRequests.length})
           </TabsTrigger>
           <TabsTrigger value="calendar">Leave Calendar</TabsTrigger>
+          <TabsTrigger value="policy">
+            <Settings className="w-4 h-4 mr-2" />
+            Leave Policy
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests">
@@ -590,6 +756,158 @@ export default function LeavesPage() {
                 High (6+)
               </div>
             </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="policy">
+          <div className="bg-card rounded-xl border border-border p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-foreground">Leave Policy Management</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Configure monthly leave limits for each leave type
+                </p>
+              </div>
+              {!editingPolicy && (
+                <Button onClick={() => setEditingPolicy({} as LeavePolicy)}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Add New Policy
+                </Button>
+              )}
+            </div>
+
+            {editingPolicy && (
+              <div className="bg-muted/50 rounded-lg p-6 mb-6 border border-border">
+                <h4 className="font-semibold mb-4">
+                  {editingPolicy._id ? 'Edit Leave Policy' : 'Create New Leave Policy'}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="leaveType">Leave Type</Label>
+                    <Select
+                      value={policyForm.leaveType}
+                      onValueChange={(value) => setPolicyForm({ ...policyForm, leaveType: value })}
+                      disabled={!!editingPolicy._id}
+                    >
+                      <SelectTrigger id="leaveType">
+                        <SelectValue placeholder="Select leave type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="annual">Annual Leave</SelectItem>
+                        <SelectItem value="sick">Sick Leave</SelectItem>
+                        <SelectItem value="casual">Casual Leave</SelectItem>
+                        <SelectItem value="maternity">Maternity Leave</SelectItem>
+                        <SelectItem value="paternity">Paternity Leave</SelectItem>
+                        <SelectItem value="unpaid">Unpaid Leave</SelectItem>
+                        <SelectItem value="other">Other Leave</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="monthlyLimit">Monthly Limit (Days)</Label>
+                    <Input
+                      id="monthlyLimit"
+                      type="number"
+                      min="0"
+                      value={policyForm.monthlyLimit}
+                      onChange={(e) => setPolicyForm({ ...policyForm, monthlyLimit: parseInt(e.target.value) || 0 })}
+                      placeholder="Enter monthly limit"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="description">Description (Optional)</Label>
+                    <Textarea
+                      id="description"
+                      value={policyForm.description}
+                      onChange={(e) => setPolicyForm({ ...policyForm, description: e.target.value })}
+                      placeholder="Enter policy description..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mt-4">
+                  <Button
+                    onClick={editingPolicy._id ? handleUpdatePolicy : handleSavePolicy}
+                    disabled={policyLoading || !policyForm.leaveType || policyForm.monthlyLimit < 0}
+                  >
+                    {policyLoading ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    {editingPolicy._id ? 'Update Policy' : 'Save Policy'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingPolicy(null);
+                      setPolicyForm({ leaveType: '', monthlyLimit: 0, description: '' });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {policyLoading && !editingPolicy ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : leavePolicies.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Settings className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No leave policies configured</p>
+                <p className="text-sm mt-1">Click "Add New Policy" to create one</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {leavePolicies.map((policy) => (
+                  <div
+                    key={policy._id}
+                    className="bg-muted/30 rounded-lg p-4 border border-border hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="font-semibold text-foreground">
+                            {formatLeaveType(policy.leaveType)}
+                          </h4>
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                            {policy.monthlyLimit} days/month
+                          </span>
+                        </div>
+                        {policy.description && (
+                          <p className="text-sm text-muted-foreground mb-2">{policy.description}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Last updated: {new Date(policy.updatedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditPolicy(policy)}
+                          disabled={policyLoading}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeletePolicy(policy._id)}
+                          disabled={policyLoading}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>

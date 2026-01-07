@@ -31,8 +31,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    // Don't redirect on login endpoint failures - let the login component handle it
+    const isLoginEndpoint = error.config?.url?.includes('/auth/login');
+    
+    if (error.response?.status === 401 && !isLoginEndpoint) {
+      // Token expired or invalid (but not on login attempts)
+      console.log('[API Interceptor] 401 error on non-login endpoint, redirecting to login');
       localStorage.removeItem('admin_token');
       localStorage.removeItem('admin_user');
       window.location.href = '/login';
@@ -121,6 +125,17 @@ export const leaveAPI = {
     api.put(`/leaves/${id}/approve`, { comments }),
   reject: (id: string, reason: string) =>
     api.put(`/leaves/${id}/reject`, { reason }),
+  // Leave Policy API
+  getPolicies: () =>
+    api.get('/leaves/policy'),
+  getPolicy: (leaveType: string) =>
+    api.get(`/leaves/policy/${leaveType}`),
+  createPolicy: (data: any) =>
+    api.post('/leaves/policy', data),
+  updatePolicy: (id: string, data: any) =>
+    api.put(`/leaves/policy/${id}`, data),
+  deletePolicy: (id: string) =>
+    api.delete(`/leaves/policy/${id}`),
 };
 
 // Notice API
