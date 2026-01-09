@@ -109,6 +109,8 @@ export const attendanceAPI = {
     api.get('/attendance', { params }),
   getStats: () =>
     api.get('/attendance/stats'),
+  getTodayPresence: () =>
+    api.get('/attendance/today-presence'),
   update: (id: string, data: any) =>
     api.put(`/attendance/${id}`, data),
 };
@@ -266,8 +268,17 @@ export const chatAPI = {
     api.get(`/chat/${id}/messages`, { params: { page } }),
   createPrivate: (userId: string) =>
     api.post('/chat/private', { userId }),
-  sendMessage: (chatId: string, content: string, messageType?: string) =>
-    api.post(`/chat/${chatId}/message`, { content, messageType }),
+  uploadFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/chat/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  sendMessage: (chatId: string, content: string, messageType?: string, attachments?: any[]) =>
+    api.post(`/chat/${chatId}/message`, { content, messageType, attachments }),
   getChatUsers: () =>
     api.get('/chat/users'),
 };

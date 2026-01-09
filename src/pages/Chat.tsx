@@ -52,6 +52,12 @@ interface Message {
   sender: { _id: string; email: string } | string;
   content: string;
   messageType?: string;
+  attachments?: Array<{
+    name: string;
+    url: string;
+    type: string;
+    size?: number;
+  }>;
   createdAt: string;
   readBy?: Array<{ user: string }>;
   isDeleted?: boolean;
@@ -67,6 +73,7 @@ interface Chat {
     createdAt: string;
   };
   messages?: Message[];
+  unreadCount?: number;
 }
 
 const Chat = () => {
@@ -81,6 +88,11 @@ const Chat = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadedAttachments, setUploadedAttachments] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [messageRequests, setMessageRequests] = useState<any[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);

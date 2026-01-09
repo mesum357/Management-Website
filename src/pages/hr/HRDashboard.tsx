@@ -12,12 +12,21 @@ import {
   Loader2,
   CalendarCheck,
   Ticket,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { StatCard } from "@/components/shared/StatCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { QuickActionCard } from "@/components/shared/QuickActionCard";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   AreaChart,
   Area,
@@ -50,12 +59,18 @@ export default function HRDashboard() {
   
   // Stats
   const [totalEmployees, setTotalEmployees] = useState(0);
-  const [newHires, setNewHires] = useState(0);
+  const [todayPresence, setTodayPresence] = useState(0);
   const [pendingLeaves, setPendingLeaves] = useState(0);
   const [totalTickets, setTotalTickets] = useState(0);
   const [latestTicketNumber, setLatestTicketNumber] = useState<string | null>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [recentLeaveRequests, setRecentLeaveRequests] = useState<LeaveRequest[]>([]);
+  
+  // Modal state
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [activeEmployees, setActiveEmployees] = useState<any[]>([]);
+  const [inactiveEmployees, setInactiveEmployees] = useState<any[]>([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -70,7 +85,7 @@ export default function HRDashboard() {
       weekAgo.setDate(weekAgo.getDate() - 7);
       
       // Fetch all data in parallel for better performance
-      const [dashboardRes, employeeStatsRes, leavesRes, ticketsStatsRes, attendanceReportRes] = await Promise.all([
+      const [dashboardRes, employeeStatsRes, leavesRes, ticketsStatsRes, attendanceReportRes, todayPresenceRes] = await Promise.all([
         analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
         employeeAPI.getStats().catch(() => ({ data: { data: {} } })),
         leaveAPI.getPending().catch(() => ({ data: { data: { leaves: [] } } })),
@@ -78,7 +93,8 @@ export default function HRDashboard() {
         analyticsAPI.getAttendanceReport({
           startDate: weekAgo.toISOString(),
           endDate: new Date().toISOString()
-        }).catch(() => ({ data: { data: { dailyAttendance: [] } } }))
+        }).catch(() => ({ data: { data: { dailyAttendance: [] } } })),
+        attendanceAPI.getTodayPresence().catch(() => ({ data: { data: { presentToday: 0 } } }))
       ]);
       
       // Process dashboard stats
@@ -91,10 +107,9 @@ export default function HRDashboard() {
       setTotalTickets(ticketStats.total || 0);
       setLatestTicketNumber(ticketStats.latestTicketNumber || null);
 
-      // Process employee stats
-      const employeeStats = employeeStatsRes.data.data;
-      // Calculate new hires this month (simplified)
-      setNewHires(0); // Would need historical data for accurate count
+      // Process today's presence
+      const presenceData = todayPresenceRes.data.data;
+      setTodayPresence(presenceData.presentToday || 0);
 
       // Process pending leave requests
       const pendingLeavesData = leavesRes.data.data.leaves || [];
@@ -156,6 +171,37 @@ export default function HRDashboard() {
     return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
   };
 
+  const handleOpenEmployeeModal = async () => {
+    setIsEmployeeModalOpen(true);
+    setLoadingEmployees(true);
+    
+    try {
+      const response = await attendanceAPI.getTodayPresence();
+      const data = response.data.data;
+      setActiveEmployees(data.active || []);
+      setInactiveEmployees(data.inactive || []);
+    } catch (error: any) {
+      console.error('Error fetching employee presence data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load employee presence data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingEmployees(false);
+    }
+  };
+
+  const formatTime = (time: string) => {
+    if (!time) return '';
+    const date = new Date(time);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -185,12 +231,14 @@ export default function HRDashboard() {
           subtitle={`Active employees`}
           icon={Users}
           variant="primary"
+          onClick={handleOpenEmployeeModal}
+          clickable
         />
         <StatCard
-          title="New Hires"
-          value={newHires.toString()}
-          subtitle="This month"
-          icon={UserPlus}
+          title="Today's Presence"
+          value={todayPresence.toString()}
+          subtitle="Employees present today"
+          icon={CalendarCheck}
           variant="success"
         />
         <StatCard
@@ -338,6 +386,102 @@ export default function HRDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Employee Modal */}
+      <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Employee Status</DialogTitle>
+            <DialogDescription>
+              View active (clocked in) and inactive (not clocked in) employees
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingEmployees ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+              {/* Active Employees */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  <h3 className="font-semibold text-lg">Active Employees</h3>
+                  <span className="text-sm text-muted-foreground">({activeEmployees.length})</span>
+                </div>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {activeEmployees.length > 0 ? (
+                    activeEmployees.map((employee: any) => (
+                      <div
+                        key={employee._id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border bg-card"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">
+                            {employee.firstName} {employee.lastName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {employee.employeeId} • {employee.department?.name || 'N/A'} • {employee.designation || 'N/A'}
+                          </p>
+                          {employee.checkInTime && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Clocked in: {formatTime(employee.checkInTime)}
+                            </p>
+                          )}
+                        </div>
+                        <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 ml-2" />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No active employees
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Inactive Employees */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <XCircle className="w-5 h-5 text-red-500" />
+                  <h3 className="font-semibold text-lg">Inactive Employees</h3>
+                  <span className="text-sm text-muted-foreground">({inactiveEmployees.length})</span>
+                </div>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {inactiveEmployees.length > 0 ? (
+                    inactiveEmployees.map((employee: any) => (
+                      <div
+                        key={employee._id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border bg-card"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">
+                            {employee.firstName} {employee.lastName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {employee.employeeId} • {employee.department?.name || 'N/A'} • {employee.designation || 'N/A'}
+                          </p>
+                          {employee.isCheckedIn && (
+                            <p className="text-xs text-orange-500 mt-1">
+                              {employee.isCheckedOut ? 'Clocked out' : 'Status unknown'}
+                            </p>
+                          )}
+                        </div>
+                        <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 ml-2" />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No inactive employees
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
