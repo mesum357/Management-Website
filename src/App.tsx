@@ -16,6 +16,8 @@ import HRDashboard from "@/pages/hr/HRDashboard";
 import EmployeesPage from "@/pages/hr/EmployeesPage";
 import AttendancePage from "@/pages/hr/AttendancePage";
 import LeavesPage from "@/pages/hr/LeavesPage";
+import TicketsPage from "@/pages/hr/TicketsPage";
+import HRMeetingsPage from "@/pages/hr/MeetingsPage";
 import NoticesPage from "@/pages/hr/NoticesPage";
 import AnalyticsPage from "@/pages/hr/AnalyticsPage";
 import Chat from "@/pages/Chat";
@@ -76,6 +78,12 @@ const App = () => {
         } />
         <Route path="/hr/leaves" element={
           <HRRoute><LeavesPage /></HRRoute>
+        } />
+        <Route path="/hr/tickets" element={
+          <HRRoute><TicketsPage /></HRRoute>
+        } />
+        <Route path="/hr/meetings" element={
+          <HRRoute><HRMeetingsPage /></HRRoute>
         } />
         <Route path="/hr/notices" element={
           <HRRoute><NoticesPage /></HRRoute>

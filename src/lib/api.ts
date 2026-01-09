@@ -170,6 +170,8 @@ export const meetingAPI = {
     api.put(`/meetings/${id}/respond`, { response }),
   cancel: (id: string) =>
     api.delete(`/meetings/${id}`),
+  delete: (id: string) =>
+    api.delete(`/meetings/${id}`),
 };
 
 // Task API
@@ -190,6 +192,20 @@ export const taskAPI = {
     api.put(`/tasks/${taskId}/subtask/${subtaskId}`, { isCompleted }),
   delete: (id: string) =>
     api.delete(`/tasks/${id}`),
+};
+
+// Ticket API
+export const ticketAPI = {
+  getAll: (params?: any) =>
+    api.get('/tickets', { params }),
+  getStats: () =>
+    api.get('/tickets/stats'),
+  getById: (id: string) =>
+    api.get(`/tickets/${id}`),
+  resolve: (id: string, resolutionNotes?: string) =>
+    api.put(`/tickets/${id}/resolve`, { resolutionNotes }),
+  updateStatus: (id: string, status: string) =>
+    api.put(`/tickets/${id}/status`, { status }),
 };
 
 // Report API

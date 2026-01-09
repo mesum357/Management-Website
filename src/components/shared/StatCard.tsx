@@ -12,6 +12,8 @@ interface StatCardProps {
   };
   variant?: "default" | "primary" | "success" | "warning" | "destructive";
   className?: string;
+  onClick?: () => void;
+  clickable?: boolean;
 }
 
 const variantStyles = {
@@ -38,9 +40,19 @@ export function StatCard({
   trend,
   variant = "default",
   className,
+  onClick,
+  clickable = false,
 }: StatCardProps) {
   return (
-    <div className={cn("stat-card", variantStyles[variant], className)}>
+    <div 
+      className={cn(
+        "stat-card", 
+        variantStyles[variant], 
+        (clickable || onClick) && "cursor-pointer hover:shadow-md transition-shadow",
+        className
+      )}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="metric-label mb-1">{title}</p>

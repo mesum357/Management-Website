@@ -18,6 +18,8 @@ import {
   ChevronRight,
   ArrowLeftRight,
   MessageCircle,
+  Video,
+  Ticket,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -38,6 +40,8 @@ const hrNavItems: NavItem[] = [
   { label: "Employees", path: "/hr/employees", icon: Users },
   { label: "Attendance", path: "/hr/attendance", icon: Clock },
   { label: "Leave Management", path: "/hr/leaves", icon: Calendar },
+  { label: "Meetings", path: "/hr/meetings", icon: Video },
+  { label: "Tickets", path: "/hr/tickets", icon: Ticket },
   { label: "Notice Board", path: "/hr/notices", icon: Megaphone },
   { label: "Chat", path: "/hr/chat", icon: MessageCircle },
   { label: "Analytics", path: "/hr/analytics", icon: BarChart3 },

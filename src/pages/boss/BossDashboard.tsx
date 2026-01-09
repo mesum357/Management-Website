@@ -9,6 +9,7 @@ import {
   CheckCircle,
   ArrowRight,
   Loader2,
+  Ticket,
 } from "lucide-react";
 import { StatCard } from "@/components/shared/StatCard";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -26,7 +27,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { analyticsAPI, employeeAPI, attendanceAPI, taskAPI } from "@/lib/api";
+import { analyticsAPI, employeeAPI, attendanceAPI, taskAPI, ticketAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -40,6 +41,8 @@ export default function BossDashboard() {
   const [activeTasks, setActiveTasks] = useState(0);
   const [todayAttendance, setTodayAttendance] = useState(0);
   const [attendanceRate, setAttendanceRate] = useState(0);
+  const [totalTickets, setTotalTickets] = useState(0);
+  const [latestTicketNumber, setLatestTicketNumber] = useState<string | null>(null);
   const [attendanceTrend, setAttendanceTrend] = useState<any[]>([]);
   const [departmentPerformance, setDepartmentPerformance] = useState<any[]>([]);
 
@@ -58,9 +61,10 @@ export default function BossDashboard() {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       // Fetch all data in parallel for better performance
-      const [dashboardRes, taskStatsRes, attendanceTrendRes, employeeStatsRes, attendanceDeptRes] = await Promise.all([
+      const [dashboardRes, taskStatsRes, ticketsStatsRes, attendanceTrendRes, employeeStatsRes, attendanceDeptRes] = await Promise.all([
         analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
         taskAPI.getStats().catch(() => ({ data: { data: { byStatus: [] } } })),
+        ticketAPI.getStats().catch(() => ({ data: { data: { total: 0, latestTicketNumber: null } } })),
         analyticsAPI.getAttendanceReport({
           startDate: fourWeeksAgo.toISOString(),
           endDate: new Date().toISOString()
@@ -79,6 +83,11 @@ export default function BossDashboard() {
       setTotalEmployees(totalEmployees);
       setTodayAttendance(stats.presentToday || 0);
       setAttendanceRate(attendanceRate);
+
+      // Process ticket stats
+      const ticketStats = ticketsStatsRes.data.data;
+      setTotalTickets(ticketStats.total || 0);
+      setLatestTicketNumber(ticketStats.latestTicketNumber || null);
 
       // Process task stats
       const taskStats = taskStatsRes.data.data;
@@ -182,6 +191,13 @@ export default function BossDashboard() {
           subtitle={`${todayAttendance} present`}
           icon={CheckCircle}
           variant="success"
+        />
+        <StatCard
+          title="Tickets"
+          value={latestTicketNumber || totalTickets.toString()}
+          subtitle={latestTicketNumber ? `Latest: ${latestTicketNumber}` : `${totalTickets} total tickets`}
+          icon={Ticket}
+          variant="default"
         />
       </div>
 

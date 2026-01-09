@@ -11,6 +11,7 @@ import {
   ArrowRight,
   Loader2,
   CalendarCheck,
+  Ticket,
 } from "lucide-react";
 import { StatCard } from "@/components/shared/StatCard";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -26,7 +27,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { analyticsAPI, employeeAPI, leaveAPI, attendanceAPI } from "@/lib/api";
+import { analyticsAPI, employeeAPI, leaveAPI, attendanceAPI, ticketAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface LeaveRequest {
@@ -51,6 +52,8 @@ export default function HRDashboard() {
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [newHires, setNewHires] = useState(0);
   const [pendingLeaves, setPendingLeaves] = useState(0);
+  const [totalTickets, setTotalTickets] = useState(0);
+  const [latestTicketNumber, setLatestTicketNumber] = useState<string | null>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [recentLeaveRequests, setRecentLeaveRequests] = useState<LeaveRequest[]>([]);
 
@@ -67,10 +70,11 @@ export default function HRDashboard() {
       weekAgo.setDate(weekAgo.getDate() - 7);
       
       // Fetch all data in parallel for better performance
-      const [dashboardRes, employeeStatsRes, leavesRes, attendanceReportRes] = await Promise.all([
+      const [dashboardRes, employeeStatsRes, leavesRes, ticketsStatsRes, attendanceReportRes] = await Promise.all([
         analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
         employeeAPI.getStats().catch(() => ({ data: { data: {} } })),
         leaveAPI.getPending().catch(() => ({ data: { data: { leaves: [] } } })),
+        ticketAPI.getStats().catch(() => ({ data: { data: { total: 0, latestTicketNumber: null } } })),
         analyticsAPI.getAttendanceReport({
           startDate: weekAgo.toISOString(),
           endDate: new Date().toISOString()
@@ -81,6 +85,11 @@ export default function HRDashboard() {
       const stats = dashboardRes.data.data;
       setTotalEmployees(stats.totalEmployees || 0);
       setPendingLeaves(stats.pendingLeaves || 0);
+
+      // Process ticket stats
+      const ticketStats = ticketsStatsRes.data.data;
+      setTotalTickets(ticketStats.total || 0);
+      setLatestTicketNumber(ticketStats.latestTicketNumber || null);
 
       // Process employee stats
       const employeeStats = employeeStatsRes.data.data;
@@ -190,6 +199,15 @@ export default function HRDashboard() {
           subtitle="Awaiting approval"
           icon={Clock}
           variant="default"
+        />
+        <StatCard
+          title="Tickets"
+          value={latestTicketNumber || totalTickets.toString()}
+          subtitle={latestTicketNumber ? `Latest: ${latestTicketNumber}` : `${totalTickets} total tickets`}
+          icon={Ticket}
+          variant="default"
+          onClick={() => navigate("/hr/tickets")}
+          clickable
         />
       </div>
 
