@@ -256,6 +256,8 @@ export const analyticsAPI = {
     api.get('/reports/tasks', { params }),
   getDepartmentReport: () =>
     api.get('/reports/department'),
+  getReportStats: (params?: any) =>
+    api.get('/reports/stats', { params }),
 };
 
 // Chat API

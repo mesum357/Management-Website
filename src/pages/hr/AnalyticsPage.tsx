@@ -7,6 +7,8 @@ import {
   Building,
   Loader2,
   AlertCircle,
+  Headphones,
+  DollarSign,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
@@ -51,12 +53,9 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState(new Date().getFullYear().toString());
   
-  // Stats
-  const [totalEmployees, setTotalEmployees] = useState(0);
-  
   // Charts data
-  const [headcountData, setHeadcountData] = useState<any[]>([]);
-  const [hiringData, setHiringData] = useState<any[]>([]);
+  const [headsetData, setHeadsetData] = useState<any[]>([]);
+  const [salesData, setSalesData] = useState<any[]>([]);
   const [departmentData, setDepartmentData] = useState<any[]>([]);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [leaveSummary, setLeaveSummary] = useState<any[]>([]);
@@ -69,16 +68,21 @@ export default function AnalyticsPage() {
     try {
       setLoading(true);
       
+      // Get date range for last 30 days
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      
       // Fetch all data in parallel for better performance
-      const [dashboardRes, employeeStatsRes, leaveRes] = await Promise.all([
+      const [dashboardRes, employeeStatsRes, leaveRes, reportStatsRes] = await Promise.all([
         analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
         employeeAPI.getStats().catch(() => ({ data: { data: {} } })),
-        leaveAPI.getAll().catch(() => ({ data: { data: { leaves: [] } } }))
+        leaveAPI.getAll().catch(() => ({ data: { data: { leaves: [] } } })),
+        analyticsAPI.getReportStats({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }).catch(() => ({ data: { data: { headsetStats: [], salesStats: [] } } }))
       ]);
-
-      // Process dashboard stats
-      const dashboardStats = dashboardRes.data.data;
-      setTotalEmployees(dashboardStats.totalEmployees || 0);
 
       // Process employee stats
       const employeeStats = employeeStatsRes.data.data;
@@ -93,16 +97,40 @@ export default function AnalyticsPage() {
         setDepartmentData(deptData);
       }
 
-      // Generate headcount trend (last 12 months)
-      const headcountTrend = generateHeadcountTrend(dashboardStats.totalEmployees || 0);
-      setHeadcountData(headcountTrend);
+      // Process report stats
+      const reportStats = reportStatsRes.data.data;
+      
+      // Format headset data for chart
+      if (reportStats.headsetStats && reportStats.headsetStats.length > 0) {
+        const headsetChartData = reportStats.headsetStats
+          .slice()
+          .reverse() // Reverse to show oldest first
+          .map((stat: any) => ({
+            date: new Date(stat._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            total: stat.totalEmployees || 0,
+            withHeadset: stat.headsetCount || 0,
+            percentage: stat.totalEmployees > 0 
+              ? Math.round((stat.headsetCount / stat.totalEmployees) * 100) 
+              : 0
+          }));
+        setHeadsetData(headsetChartData);
+      }
 
-      // Generate hiring data (last 12 months)
-      const hiringTrend = generateHiringTrend();
-      setHiringData(hiringTrend);
+      // Format sales data for chart
+      if (reportStats.salesStats && reportStats.salesStats.length > 0) {
+        const salesChartData = reportStats.salesStats
+          .slice()
+          .reverse() // Reverse to show oldest first
+          .map((stat: any) => ({
+            date: new Date(stat._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            total: stat.totalSales || 0,
+            average: Math.round(stat.avgSales || 0),
+            employees: stat.employeeCount || 0
+          }));
+        setSalesData(salesChartData);
+      }
 
       // Generate attendance by department from department stats
-      // This is a simplified calculation - in production, you'd want to aggregate attendance by department
       const deptAttendance = employeeStats.departmentStats?.map((dept: any, index: number) => {
         const basePercent = 90 - (index * 2); // Simulate different attendance rates
         return {
@@ -133,31 +161,6 @@ export default function AnalyticsPage() {
     }
   };
 
-  const generateHeadcountTrend = (currentTotal: number) => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const trend = [];
-    
-    // Generate trend with slight variations
-    for (let i = 0; i < 12; i++) {
-      const variation = Math.floor(Math.random() * 10) - 5; // Random variation
-      trend.push({
-        month: months[i],
-        employees: Math.max(1, currentTotal + variation - (11 - i) * 2)
-      });
-    }
-    
-    return trend;
-  };
-
-  const generateHiringTrend = () => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
-    return months.map(month => ({
-      month,
-      hired: Math.floor(Math.random() * 10) + 2,
-      left: Math.floor(Math.random() * 6) + 1
-    }));
-  };
 
   const calculateLeaveSummary = (leaves: any[]) => {
     const currentMonth = new Date().getMonth();
@@ -237,69 +240,26 @@ export default function AnalyticsPage() {
         }
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-6">
-        <StatCard
-          title="Total Headcount"
-          value={totalEmployees.toString()}
-          icon={Users}
-          variant="primary"
-          trend={{ value: 3.5, isPositive: true }}
-        />
-      </div>
-
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Headcount Trend */}
+        {/* Headset Usage */}
         <div className="bg-card rounded-xl border border-border p-6">
-          <h3 className="section-title mb-4">Headcount Trend</h3>
-          {headcountData.length > 0 ? (
+          <div className="flex items-center gap-2 mb-4">
+            <Headphones className="w-5 h-5 text-primary" />
+            <h3 className="section-title">Headset Usage</h3>
+          </div>
+          {headsetData.length > 0 ? (
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={headcountData}>
+                <AreaChart data={headsetData}>
                   <defs>
-                    <linearGradient id="colorEmployees" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="colorHeadset" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
                       <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="employees"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorEmployees)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-64 flex items-center justify-center text-muted-foreground">
-              No data available
-            </div>
-          )}
-        </div>
-
-        {/* Hiring vs Attrition */}
-        <div className="bg-card rounded-xl border border-border p-6">
-          <h3 className="section-title mb-4">Hiring vs Attrition</h3>
-          {hiringData.length > 0 ? (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={hiringData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <Tooltip
                     contentStyle={{
@@ -309,14 +269,82 @@ export default function AnalyticsPage() {
                     }}
                   />
                   <Legend />
-                  <Bar dataKey="hired" name="Hired" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="left" name="Left" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <Area
+                    type="monotone"
+                    dataKey="withHeadset"
+                    name="With Headset"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorHeadset)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    name="Total Employees"
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeWidth={2}
+                    fillOpacity={0.1}
+                    fill="hsl(var(--muted-foreground))"
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           ) : (
             <div className="h-64 flex items-center justify-center text-muted-foreground">
-              No data available
+              No headset data available
+            </div>
+          )}
+        </div>
+
+        {/* Sales Trend */}
+        <div className="bg-card rounded-xl border border-border p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign className="w-5 h-5 text-success" />
+            <h3 className="section-title">Sales Trend</h3>
+          </div>
+          {salesData.length > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={salesData}>
+                  <defs>
+                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                    formatter={(value: any) => {
+                      if (typeof value === 'number') {
+                        return value.toLocaleString();
+                      }
+                      return value;
+                    }}
+                  />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="total"
+                    name="Total Sales"
+                    stroke="hsl(var(--success))"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorSales)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-muted-foreground">
+              No sales data available
             </div>
           )}
         </div>
