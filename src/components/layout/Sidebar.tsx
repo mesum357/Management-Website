@@ -20,6 +20,7 @@ import {
   MessageCircle,
   Video,
   Ticket,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ const hrNavItems: NavItem[] = [
   { label: "Notice Board", path: "/hr/notices", icon: Megaphone },
   { label: "Chat", path: "/hr/chat", icon: MessageCircle },
   { label: "Analytics", path: "/hr/analytics", icon: BarChart3 },
+  { label: "Settings", path: "/hr/settings", icon: SettingsIcon },
 ];
 
 const bossNavItems: NavItem[] = [
@@ -54,6 +56,7 @@ const bossNavItems: NavItem[] = [
   { label: "Notices", path: "/boss/notices", icon: Megaphone },
   { label: "Chat", path: "/boss/chat", icon: MessageCircle },
   { label: "Analytics", path: "/boss/analytics", icon: BarChart3 },
+  { label: "Settings", path: "/boss/settings", icon: SettingsIcon },
 ];
 
 export function Sidebar() {

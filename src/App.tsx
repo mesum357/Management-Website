@@ -28,6 +28,9 @@ import MeetingsPage from "@/pages/boss/MeetingsPage";
 import TasksPage from "@/pages/boss/TasksPage";
 import BossNoticesPage from "@/pages/boss/BossNoticesPage";
 
+// Shared Pages
+import Settings from "@/pages/Settings";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -94,6 +97,9 @@ const App = () => {
         <Route path="/hr/analytics" element={
           <HRRoute><AnalyticsPage /></HRRoute>
         } />
+        <Route path="/hr/settings" element={
+          <HRRoute><Settings /></HRRoute>
+        } />
 
         {/* Boss Dashboard Routes - Only Boss, Manager, and Admin */}
         <Route path="/boss" element={
@@ -113,6 +119,9 @@ const App = () => {
         } />
         <Route path="/boss/analytics" element={
           <BossRoute><AnalyticsPage /></BossRoute>
+        } />
+        <Route path="/boss/settings" element={
+          <BossRoute><Settings /></BossRoute>
         } />
       </Route>
       

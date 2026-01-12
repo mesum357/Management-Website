@@ -297,5 +297,13 @@ export const messageRequestAPI = {
     api.put(`/message-requests/${id}/reject`),
 };
 
+// Settings API
+export const settingsAPI = {
+  get: () =>
+    api.get('/settings'),
+  update: (data: { companyName: string }) =>
+    api.put('/settings', data),
+};
+
 export default api;
 

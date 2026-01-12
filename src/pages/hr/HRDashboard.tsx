@@ -228,7 +228,6 @@ export default function HRDashboard() {
         <StatCard
           title="Total Employees"
           value={totalEmployees.toString()}
-          subtitle={`Active employees`}
           icon={Users}
           variant="primary"
           onClick={handleOpenEmployeeModal}
