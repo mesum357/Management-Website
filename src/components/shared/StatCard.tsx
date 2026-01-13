@@ -14,6 +14,7 @@ interface StatCardProps {
   className?: string;
   onClick?: () => void;
   clickable?: boolean;
+  actions?: React.ReactNode;
 }
 
 const variantStyles = {
@@ -42,6 +43,7 @@ export function StatCard({
   className,
   onClick,
   clickable = false,
+  actions,
 }: StatCardProps) {
   return (
     <div 
@@ -53,9 +55,16 @@ export function StatCard({
       )}
       onClick={onClick}
     >
+      <div className="flex items-start justify-between mb-2">
+        <p className="metric-label">{title}</p>
+        {actions && (
+          <div onClick={(e) => e.stopPropagation()}>
+            {actions}
+          </div>
+        )}
+      </div>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="metric-label mb-1">{title}</p>
           <p className="metric-value">{value}</p>
           {subtitle && (
             <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>

@@ -109,7 +109,11 @@ const Chat = () => {
       transports: ['websocket', 'polling'],
       auth: {
         token: localStorage.getItem('admin_token')
-      }
+      },
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 5
     });
 
     socketRef.current = socket;
@@ -118,7 +122,7 @@ const Chat = () => {
     socket.emit('join', user.id);
 
     // Listen for new messages
-    socket.on('newMessage', (data: { chatId: string; message: Message }) => {
+    const handleNewMessage = (data: { chatId: string; message: Message }) => {
       if (selectedChat && data.chatId === selectedChat._id) {
         setMessages(prev => {
           // Check if message already exists to prevent duplicates
@@ -133,24 +137,31 @@ const Chat = () => {
       
       // Update chat list
       fetchChats();
-    });
+    };
+
+    socket.on('newMessage', handleNewMessage);
 
     // Listen for new message requests (boss only)
-    socket.on('newMessageRequest', (data: { requestId: string; from: any }) => {
+    const handleNewMessageRequest = (data: { requestId: string; from: any }) => {
       if (user?.role === 'boss') {
         fetchMessageRequests();
       }
-    });
+    };
+
+    socket.on('newMessageRequest', handleNewMessageRequest);
 
     // Listen for message request accepted/rejected
-    socket.on('messageRequestAccepted', (data: { requestId: string; chatId: string }) => {
+    const handleMessageRequestAccepted = (data: { requestId: string; chatId: string }) => {
       fetchMessageRequests();
       fetchChats();
-    });
+    };
 
-    socket.on('messageRequestRejected', (data: { requestId: string }) => {
+    const handleMessageRequestRejected = (data: { requestId: string }) => {
       fetchMessageRequests();
-    });
+    };
+
+    socket.on('messageRequestAccepted', handleMessageRequestAccepted);
+    socket.on('messageRequestRejected', handleMessageRequestRejected);
 
     // Handle typing indicators
     socket.on('userTyping', (data: { userId: string; chatId: string; isTyping: boolean }) => {
@@ -166,10 +177,19 @@ const Chat = () => {
       console.log('Disconnected from socket');
     });
 
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+
     return () => {
+      socket.off('newMessage', handleNewMessage);
+      socket.off('newMessageRequest', handleNewMessageRequest);
+      socket.off('messageRequestAccepted', handleMessageRequestAccepted);
+      socket.off('messageRequestRejected', handleMessageRequestRejected);
       socket.disconnect();
+      socketRef.current = null;
     };
-  }, [user, selectedChat]);
+  }, [user?.id]); // Only depend on user.id, not selectedChat
 
   // Fetch all users and chats on mount
   useEffect(() => {

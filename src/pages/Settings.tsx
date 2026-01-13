@@ -1,38 +1,45 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, Building2, AlertCircle } from "lucide-react";
+import { Loader2, Save, User, AlertCircle } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { settingsAPI } from "@/lib/api";
+import { authAPI, employeeAPI } from "@/lib/api";
 
 export default function Settings() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [companyName, setCompanyName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSettings();
+    fetchUserData();
   }, []);
 
-  const fetchSettings = async () => {
+  const fetchUserData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await settingsAPI.get();
-      if (response.data.success && response.data.data.settings) {
-        setCompanyName(response.data.data.settings.companyName || "");
+      const response = await authAPI.getMe();
+      if (response.data.success && response.data.data.user) {
+        const user = response.data.data.user;
+        if (user.employee) {
+          setFirstName(user.employee.firstName || "");
+          setLastName(user.employee.lastName || "");
+          setEmployeeId(user.employee._id || user.employee.id);
+        }
       }
     } catch (err: any) {
-      console.error('Error fetching settings:', err);
-      setError(err.response?.data?.message || 'Failed to load settings');
+      console.error('Error fetching user data:', err);
+      setError(err.response?.data?.message || 'Failed to load user data');
       toast({
         title: "Error",
-        description: err.response?.data?.message || "Failed to load settings",
+        description: err.response?.data?.message || "Failed to load user data",
         variant: "destructive"
       });
     } finally {
@@ -41,10 +48,28 @@ export default function Settings() {
   };
 
   const handleSave = async () => {
-    if (!companyName || companyName.trim() === "") {
+    if (!firstName || firstName.trim() === "") {
       toast({
         title: "Validation Error",
-        description: "Company name cannot be empty",
+        description: "First name cannot be empty",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!lastName || lastName.trim() === "") {
+      toast({
+        title: "Validation Error",
+        description: "Last name cannot be empty",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!employeeId) {
+      toast({
+        title: "Error",
+        description: "Employee information not found",
         variant: "destructive"
       });
       return;
@@ -53,17 +78,22 @@ export default function Settings() {
     try {
       setSaving(true);
       setError(null);
-      await settingsAPI.update({ companyName: companyName.trim() });
+      await employeeAPI.update(employeeId, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim()
+      });
       toast({
         title: "Success",
-        description: "Settings saved successfully"
+        description: "Name updated successfully"
       });
+      // Refresh user data
+      await fetchUserData();
     } catch (err: any) {
-      console.error('Error saving settings:', err);
-      setError(err.response?.data?.message || 'Failed to save settings');
+      console.error('Error saving name:', err);
+      setError(err.response?.data?.message || 'Failed to save name');
       toast({
         title: "Error",
-        description: err.response?.data?.message || "Failed to save settings",
+        description: err.response?.data?.message || "Failed to save name",
         variant: "destructive"
       });
     } finally {
@@ -83,20 +113,20 @@ export default function Settings() {
     <div className="animate-fade-in">
       <PageHeader
         title="Settings"
-        description="Manage your organization settings"
+        description="Manage your profile settings"
       />
 
       <div className="space-y-6">
-        {/* General Settings */}
+        {/* Employee Name Settings */}
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary" />
+              <User className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-foreground">Company Information</h2>
+              <h2 className="text-xl font-semibold text-foreground">Employee Name</h2>
               <p className="text-sm text-muted-foreground">
-                Update your company name and branding
+                Update your employee name
               </p>
             </div>
           </div>
@@ -110,25 +140,36 @@ export default function Settings() {
           )}
 
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Company Name</Label>
-              <Input
-                id="companyName"
-                type="text"
-                placeholder="Enter company name"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="max-w-md"
-              />
-              <p className="text-xs text-muted-foreground">
-                This name will be displayed throughout the application
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  placeholder="Enter first name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  placeholder="Enter last name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Your name will be updated across the system
+            </p>
 
             <div className="pt-4 border-t">
               <Button
                 onClick={handleSave}
-                disabled={saving || !companyName.trim()}
+                disabled={saving || !firstName.trim() || !lastName.trim()}
                 className="gap-2"
               >
                 {saving ? (

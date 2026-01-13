@@ -105,6 +105,9 @@ const App = () => {
         <Route path="/boss" element={
           <BossRoute><BossDashboard /></BossRoute>
         } />
+        <Route path="/boss/employees" element={
+          <BossRoute><EmployeesPage /></BossRoute>
+        } />
         <Route path="/boss/meetings" element={
           <BossRoute><MeetingsPage /></BossRoute>
         } />

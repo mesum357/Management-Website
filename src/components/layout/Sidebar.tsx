@@ -51,6 +51,7 @@ const hrNavItems: NavItem[] = [
 
 const bossNavItems: NavItem[] = [
   { label: "Dashboard", path: "/boss", icon: LayoutDashboard },
+  { label: "Employees", path: "/boss/employees", icon: Users },
   { label: "Meetings", path: "/boss/meetings", icon: Calendar },
   { label: "Tasks", path: "/boss/tasks", icon: Briefcase },
   { label: "Notices", path: "/boss/notices", icon: Megaphone },
