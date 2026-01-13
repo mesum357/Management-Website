@@ -41,10 +41,17 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   return <>{children}</>;
 }
 
-// HOC for HR-only routes
+// HOC for HR-only routes (also allows boss/manager for tickets)
 export function HRRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  // Allow boss/manager to access tickets page
+  const isTicketsPage = location.pathname.includes('/tickets');
+  const allowedRoles = isTicketsPage 
+    ? ['hr', 'admin', 'boss', 'manager'] 
+    : ['hr', 'admin'];
+  
   return (
-    <ProtectedRoute allowedRoles={['hr', 'admin']}>
+    <ProtectedRoute allowedRoles={allowedRoles}>
       {children}
     </ProtectedRoute>
   );

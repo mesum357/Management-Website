@@ -160,7 +160,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   return (
     <aside
         className={cn(
-          "fixed left-0 top-0 h-screen bg-sidebar flex flex-col z-50 transition-all duration-300 border-r border-sidebar-border",
+          "fixed left-0 top-0 h-screen bg-sidebar flex flex-col z-[55] transition-all duration-300 border-r border-sidebar-border",
           isCollapsed ? "w-16" : "w-64",
           // Mobile/Tablet: slide in/out from left
           "lg:translate-x-0",

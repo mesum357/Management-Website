@@ -3,6 +3,7 @@ import { Outlet, Navigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Menu } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function MainLayout() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -29,19 +30,26 @@ export function MainLayout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-[50] lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
       {/* Mobile hamburger button */}
-      {!sidebarOpen && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-sidebar text-sidebar-foreground shadow-lg hover:bg-sidebar-accent transition-colors"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-      )}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setSidebarOpen(true);
+        }}
+        className={cn(
+          "fixed top-4 left-4 z-[60] lg:hidden p-2 rounded-lg bg-sidebar text-sidebar-foreground shadow-lg hover:bg-sidebar-accent transition-all duration-200",
+          sidebarOpen && "hidden"
+        )}
+        aria-label="Open menu"
+        type="button"
+      >
+        <Menu className="w-6 h-6" />
+      </button>
       <main className="lg:ml-64 min-h-screen transition-all duration-300">
         <div className="p-4 sm:p-6">
           <Outlet context={{ setSidebarOpen }} />
