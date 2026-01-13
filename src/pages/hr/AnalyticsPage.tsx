@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Loader2,
   Headphones,
   DollarSign,
+  Activity,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -27,7 +30,12 @@ import { analyticsAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AnalyticsPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  
+  // Determine base path (hr or boss)
+  const basePath = location.pathname.startsWith('/boss') ? '/boss' : '/hr';
   const [loading, setLoading] = useState(true);
   const [headsetPeriod, setHeadsetPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const [salesPeriod, setSalesPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -192,16 +200,27 @@ export default function AnalyticsPage() {
           icon={Headphones}
           variant="primary"
           actions={
-            <Select value={headsetPeriod} onValueChange={(value: "daily" | "weekly" | "monthly") => setHeadsetPeriod(value)}>
-              <SelectTrigger className="w-[100px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={headsetPeriod} onValueChange={(value: "daily" | "weekly" | "monthly") => setHeadsetPeriod(value)}>
+                <SelectTrigger className="w-[100px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => navigate(`${basePath}/reports`)}
+              >
+                <Activity className="w-4 h-4 mr-1" />
+                All Activity
+              </Button>
+            </div>
           }
         />
 
@@ -213,16 +232,27 @@ export default function AnalyticsPage() {
           icon={DollarSign}
           variant="success"
           actions={
-            <Select value={salesPeriod} onValueChange={(value: "daily" | "weekly" | "monthly") => setSalesPeriod(value)}>
-              <SelectTrigger className="w-[100px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select value={salesPeriod} onValueChange={(value: "daily" | "weekly" | "monthly") => setSalesPeriod(value)}>
+                <SelectTrigger className="w-[100px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => navigate(`${basePath}/reports`)}
+              >
+                <Activity className="w-4 h-4 mr-1" />
+                All Activity
+              </Button>
+            </div>
           }
         />
       </div>

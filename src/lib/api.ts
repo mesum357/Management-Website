@@ -224,6 +224,8 @@ export const reportAPI = {
     api.get(`/reports/employee/${id}`),
   getDepartment: () =>
     api.get('/reports/department'),
+  getAll: (params?: any) =>
+    api.get('/reports', { params }),
 };
 
 // Recruitment API

@@ -20,6 +20,7 @@ import TicketsPage from "@/pages/hr/TicketsPage";
 import HRMeetingsPage from "@/pages/hr/MeetingsPage";
 import NoticesPage from "@/pages/hr/NoticesPage";
 import AnalyticsPage from "@/pages/hr/AnalyticsPage";
+import ReportActivityPage from "@/pages/hr/ReportActivityPage";
 import Chat from "@/pages/Chat";
 
 // Boss Pages
@@ -97,6 +98,9 @@ const App = () => {
         <Route path="/hr/analytics" element={
           <HRRoute><AnalyticsPage /></HRRoute>
         } />
+        <Route path="/hr/reports" element={
+          <HRRoute><ReportActivityPage /></HRRoute>
+        } />
         <Route path="/hr/settings" element={
           <HRRoute><Settings /></HRRoute>
         } />
@@ -122,6 +126,9 @@ const App = () => {
         } />
         <Route path="/boss/analytics" element={
           <BossRoute><AnalyticsPage /></BossRoute>
+        } />
+        <Route path="/boss/reports" element={
+          <BossRoute><ReportActivityPage /></BossRoute>
         } />
         <Route path="/boss/settings" element={
           <BossRoute><Settings /></BossRoute>

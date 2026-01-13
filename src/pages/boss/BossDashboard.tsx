@@ -198,6 +198,8 @@ export default function BossDashboard() {
           subtitle={latestTicketNumber ? `Latest: ${latestTicketNumber}` : `${totalTickets} total tickets`}
           icon={Ticket}
           variant="default"
+          onClick={() => navigate("/hr/tickets")}
+          clickable
         />
       </div>
 
