@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,12 +70,17 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const prevPathnameRef = useRef<string | null>(null);
   
-  // Close sidebar when route changes on mobile
+  // Close sidebar when route changes on mobile (but not on initial mount)
   useEffect(() => {
-    if (window.innerWidth < 1024 && onClose) {
-      onClose();
+    if (prevPathnameRef.current !== null && prevPathnameRef.current !== location.pathname) {
+      // Only close if pathname actually changed (not on initial mount)
+      if (window.innerWidth < 1024 && onClose) {
+        onClose();
+      }
     }
+    prevPathnameRef.current = location.pathname;
   }, [location.pathname, onClose]);
   
   // Determine which portal to show based on current route
@@ -257,8 +262,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
               className={cn(
-                "w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors",
+                "w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent transition-colors cursor-pointer",
                 isCollapsed && "justify-center"
               )}
             >
@@ -287,13 +296,24 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent 
+            align="end" 
+            sideOffset={5}
+            className="w-56 z-[70]"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="px-2 py-1.5">
               <p className="text-sm font-medium">{user?.email}</p>
               <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLogout();
+              }} 
+              className="text-destructive cursor-pointer focus:text-destructive"
+            >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </DropdownMenuItem>
