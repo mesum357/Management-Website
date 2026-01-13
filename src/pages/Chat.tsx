@@ -316,16 +316,83 @@ const Chat = () => {
     }
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, isImage: boolean) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const fileArray = Array.from(files);
+    
+    // Validate file types
+    if (isImage) {
+      const imageFiles = fileArray.filter(file => file.type.startsWith('image/'));
+      if (imageFiles.length === 0) {
+        setError('Please select image files only');
+        return;
+      }
+      setSelectedFiles(prev => [...prev, ...imageFiles]);
+    } else {
+      setSelectedFiles(prev => [...prev, ...fileArray]);
+    }
+
+    // Upload files immediately
+    try {
+      setUploading(true);
+      setError(null);
+      
+      const uploadPromises = fileArray.map(async (file) => {
+        try {
+          const response = await chatAPI.uploadFile(file);
+          return response.data.data;
+        } catch (err: any) {
+          console.error('Error uploading file:', err);
+          throw err;
+        }
+      });
+
+      const uploadedFiles = await Promise.all(uploadPromises);
+      setUploadedAttachments(prev => [...prev, ...uploadedFiles]);
+    } catch (err: any) {
+      console.error('Error uploading files:', err);
+      setError(err.response?.data?.message || 'Failed to upload file(s)');
+      // Remove failed files from selected files
+      setSelectedFiles(prev => prev.filter(f => !fileArray.includes(f)));
+    } finally {
+      setUploading(false);
+      // Reset input
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAttachment = (index: number) => {
+    setUploadedAttachments(prev => prev.filter((_, i) => i !== index));
+    // Also remove corresponding file from selectedFiles if possible
+    if (index < selectedFiles.length) {
+      setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !selectedChat || sending) return;
+    if ((!messageInput.trim() && uploadedAttachments.length === 0) || !selectedChat || sending || uploading) return;
 
     const messageContent = messageInput.trim();
-    setMessageInput(""); // Clear input immediately for better UX
+    const attachmentsToSend = [...uploadedAttachments];
+    
+    // Clear inputs immediately for better UX
+    setMessageInput("");
+    setUploadedAttachments([]);
+    setSelectedFiles([]);
     
     try {
       setSending(true);
       
-      const response = await chatAPI.sendMessage(selectedChat._id, messageContent);
+      const response = await chatAPI.sendMessage(
+        selectedChat._id, 
+        messageContent, 
+        attachmentsToSend.length > 0 ? (attachmentsToSend.some(a => a.type === 'image') ? 'image' : 'file') : 'text',
+        attachmentsToSend
+      );
       
       if (response.data.success) {
         // Add message immediately for sender (optimistic update)
@@ -345,8 +412,9 @@ const Chat = () => {
     } catch (err: any) {
       console.error('Error sending message:', err);
       setError(err.response?.data?.message || 'Failed to send message');
-      // Restore input on error
+      // Restore inputs on error
       setMessageInput(messageContent);
+      setUploadedAttachments(attachmentsToSend);
     } finally {
       setSending(false);
     }
@@ -701,7 +769,53 @@ const Chat = () => {
                             : "bg-secondary text-foreground rounded-bl-md"
                         )}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        {message.attachments && message.attachments.length > 0 && (
+                          <div className="mb-2 space-y-2">
+                            {message.attachments.map((attachment, idx) => (
+                              <div key={idx} className="rounded-lg overflow-hidden">
+                                {attachment.type === 'image' ? (
+                                  <a
+                                    href={attachment.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block"
+                                  >
+                                    <img
+                                      src={attachment.url}
+                                      alt={attachment.name}
+                                      className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                                    />
+                                  </a>
+                                ) : (
+                                  <a
+                                    href={attachment.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={cn(
+                                      "flex items-center gap-2 p-2 rounded-lg border transition-colors",
+                                      isMe
+                                        ? "bg-primary-foreground/10 border-primary-foreground/20 hover:bg-primary-foreground/20"
+                                        : "bg-background border-border hover:bg-accent"
+                                    )}
+                                  >
+                                    <Paperclip className="w-4 h-4 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">{attachment.name}</p>
+                                      {attachment.size && (
+                                        <p className="text-xs text-muted-foreground">
+                                          {(attachment.size / 1024).toFixed(2)} KB
+                                        </p>
+                                      )}
+                                    </div>
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {message.content && (
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        )}
                         <div className={cn(
                           "flex items-center gap-1 mt-1",
                           isMe ? "justify-end" : "justify-start"
@@ -735,12 +849,81 @@ const Chat = () => {
                 {error}
               </div>
             )}
+            
+            {/* Show uploaded attachments preview */}
+            {uploadedAttachments.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {uploadedAttachments.map((attachment, idx) => (
+                  <div
+                    key={idx}
+                    className="relative inline-flex items-center gap-2 p-2 bg-secondary rounded-lg border border-border"
+                  >
+                    {attachment.type === 'image' ? (
+                      <img
+                        src={attachment.url}
+                        alt={attachment.name}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Paperclip className="w-4 h-4" />
+                        <span className="text-xs max-w-[100px] truncate">{attachment.name}</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAttachment(idx)}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon">
-                <Paperclip className="w-5 h-5" />
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={(e) => handleFileSelect(e, false)}
+                multiple
+                accept="*/*"
+                className="hidden"
+              />
+              <input
+                type="file"
+                ref={imageInputRef}
+                onChange={(e) => handleFileSelect(e, true)}
+                multiple
+                accept="image/*"
+                className="hidden"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || sending}
+              >
+                {uploading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Paperclip className="w-5 h-5" />
+                )}
               </Button>
-              <Button variant="ghost" size="icon">
-                <Image className="w-5 h-5" />
+              <Button
+                variant="ghost"
+                size="icon"
+                type="button"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploading || sending}
+              >
+                {uploading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Image className="w-5 h-5" />
+                )}
               </Button>
               <Input
                 placeholder="Type a message..."
@@ -753,17 +936,18 @@ const Chat = () => {
                     handleSendMessage();
                   }
                 }}
-                disabled={sending}
+                disabled={sending || uploading}
               />
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" type="button">
                 <Smile className="w-5 h-5" />
               </Button>
               <Button 
                 size="icon" 
-                disabled={!messageInput.trim() || sending}
+                type="button"
+                disabled={(!messageInput.trim() && uploadedAttachments.length === 0) || sending || uploading}
                 onClick={handleSendMessage}
               >
-                {sending ? (
+                {sending || uploading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <Send className="w-5 h-5" />
