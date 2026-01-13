@@ -184,7 +184,7 @@ export default function ReportActivityPage() {
           value={filterPeriod}
           onValueChange={(value: "today" | "week" | "month") => setFilterPeriod(value)}
         >
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-full sm:w-[180px]">
             <Calendar className="w-4 h-4 mr-2" />
             <SelectValue />
           </SelectTrigger>
@@ -211,8 +211,9 @@ export default function ReportActivityPage() {
               <p>No reports found for {getPeriodLabel(filterPeriod).toLowerCase()}</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
@@ -273,6 +274,7 @@ export default function ReportActivityPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </CardContent>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,11 +60,23 @@ const bossNavItems: NavItem[] = [
   { label: "Settings", path: "/boss/settings", icon: SettingsIcon },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    if (window.innerWidth < 1024 && onClose) {
+      onClose();
+    }
+  }, [location.pathname, onClose]);
   
   // Determine which portal to show based on current route
   const isOnBossRoute = location.pathname.startsWith('/boss');
@@ -126,6 +138,12 @@ export function Sidebar() {
     return (
       <NavLink
         to={item.path}
+        onClick={() => {
+          // Close sidebar on mobile when clicking a nav item
+          if (window.innerWidth < 1024 && onClose) {
+            onClose();
+          }
+        }}
         className={cn(
           "nav-item group",
           isActive && "nav-item-active"
@@ -141,11 +159,14 @@ export function Sidebar() {
 
   return (
     <aside
-      className={cn(
-        "fixed left-0 top-0 h-screen bg-sidebar flex flex-col z-50 transition-all duration-300 border-r border-sidebar-border",
-        isCollapsed ? "w-16" : "w-64"
-      )}
-    >
+        className={cn(
+          "fixed left-0 top-0 h-screen bg-sidebar flex flex-col z-50 transition-all duration-300 border-r border-sidebar-border",
+          isCollapsed ? "w-16" : "w-64",
+          // Mobile/Tablet: slide in/out from left
+          "lg:translate-x-0",
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
+      >
       {/* Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
         {!isCollapsed && (
@@ -156,12 +177,22 @@ export function Sidebar() {
             <span className="font-bold text-sidebar-accent-foreground text-lg">Cross DIGI</span>
           </div>
         )}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
-        >
-          {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Desktop collapse button */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="hidden lg:flex p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
+          >
+            {isCollapsed ? <Menu className="w-5 h-5" /> : <X className="w-5 h-5" />}
+          </button>
+          {/* Mobile close button */}
+          <button
+            onClick={() => onClose?.()}
+            className="lg:hidden p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Navigation */}

@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
       />
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Headset Count Card */}
         <StatCard
           title="Headset Count"
@@ -258,9 +258,9 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Headset Usage */}
-        <div className="bg-card rounded-xl border border-border p-6">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <Headphones className="w-5 h-5 text-primary" />
             <h3 className="section-title">Headset Usage</h3>
@@ -315,7 +315,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Sales Trend */}
-        <div className="bg-card rounded-xl border border-border p-6">
+        <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <DollarSign className="w-5 h-5 text-success" />
             <h3 className="section-title">Sales Trend</h3>
