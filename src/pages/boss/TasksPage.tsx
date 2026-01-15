@@ -96,6 +96,7 @@ const statusConfig = {
 export default function TasksPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const canManageTasks = ['boss', 'manager', 'admin'].includes(user?.role || '');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -428,25 +429,26 @@ export default function TasksPage() {
         title="Task Management"
         description="Assign and track tasks across teams"
         actions={
-          <Dialog open={isCreateOpen} onOpenChange={(open) => {
-            setIsCreateOpen(open);
-            if (!open) {
-              resetForm();
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="w-4 h-4" />
-                Create Task
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Create New Task</DialogTitle>
-                <DialogDescription>
-                  Assign a new task to team members.
-                </DialogDescription>
-              </DialogHeader>
+          canManageTasks ? (
+            <Dialog open={isCreateOpen} onOpenChange={(open) => {
+              setIsCreateOpen(open);
+              if (!open) {
+                resetForm();
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Plus className="w-4 h-4" />
+                  Create Task
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>Create New Task</DialogTitle>
+                  <DialogDescription>
+                    Assign a new task to team members.
+                  </DialogDescription>
+                </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">
@@ -573,45 +575,47 @@ export default function TasksPage() {
                   )}
                 </Button>
               </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          ) : undefined
         }
       />
 
       {/* Edit Task Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={(open) => {
-        setIsEditOpen(open);
-        if (!open) {
-          resetForm();
-        }
-      }}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
-            <DialogDescription>
-              Update task details and assignments.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Task Title <span className="text-destructive">*</span>
-              </label>
-              <Input
-                placeholder="Enter task title..."
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">Description</label>
-              <Textarea
-                placeholder="Describe the task..."
-                className="min-h-[100px]"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </div>
+      {canManageTasks && (
+        <Dialog open={isEditOpen} onOpenChange={(open) => {
+          setIsEditOpen(open);
+          if (!open) {
+            resetForm();
+          }
+        }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+              <DialogDescription>
+                Update task details and assignments.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Task Title <span className="text-destructive">*</span>
+                </label>
+                <Input
+                  placeholder="Enter task title..."
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Description</label>
+                <Textarea
+                  placeholder="Describe the task..."
+                  className="min-h-[100px]"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">
@@ -718,8 +722,9 @@ export default function TasksPage() {
               )}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -854,10 +859,12 @@ export default function TasksPage() {
                       }}>
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleEditClick(task)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit Task
-                      </DropdownMenuItem>
+                      {canManageTasks && (
+                        <DropdownMenuItem onClick={() => handleEditClick(task)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit Task
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={() => handleUpdateStatus(task._id, "in-progress")}
                         disabled={task.status === "in-progress"}
@@ -870,13 +877,15 @@ export default function TasksPage() {
                       >
                         Mark as Completed
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteTask(task._id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
+                      {canManageTasks && (
+                        <DropdownMenuItem
+                          onClick={() => handleDeleteTask(task._id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -1006,30 +1015,32 @@ export default function TasksPage() {
                 </Select>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {
-                    handleEditClick(selectedTask);
-                    setSelectedTask(null);
-                  }}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Task
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onClick={() => {
-                    handleDeleteTask(selectedTask._id);
-                    setSelectedTask(null);
-                  }}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Task
-                </Button>
-              </div>
+              {canManageTasks && (
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      handleEditClick(selectedTask);
+                      setSelectedTask(null);
+                    }}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Task
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => {
+                      handleDeleteTask(selectedTask._id);
+                      setSelectedTask(null);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Task
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>

@@ -42,6 +42,7 @@ const hrNavItems: NavItem[] = [
   { label: "Attendance", path: "/hr/attendance", icon: Clock },
   { label: "Leave Management", path: "/hr/leaves", icon: Calendar },
   { label: "Meetings", path: "/hr/meetings", icon: Video },
+  { label: "Tasks", path: "/hr/tasks", icon: Briefcase },
   { label: "Tickets", path: "/hr/tickets", icon: Ticket },
   { label: "Notice Board", path: "/hr/notices", icon: Megaphone },
   { label: "Chat", path: "/hr/chat", icon: MessageCircle },
@@ -104,6 +105,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       case 'manager': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
       default: return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
     }
+  };
+
+  const getRoleLabel = (role?: string) => {
+    if (!role) return '';
+    if (role === 'admin') return 'Founder';
+    return role;
   };
 
   // Determine which nav items to show based on user role and current route
@@ -287,7 +294,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         "text-xs px-2 py-0.5 rounded-full font-medium capitalize",
                         getRoleBadgeColor(user?.role)
                       )}>
-                        {user?.role}
+                        {getRoleLabel(user?.role)}
                       </span>
                     </div>
                   </div>
@@ -304,7 +311,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           >
             <div className="px-2 py-1.5">
               <p className="text-sm font-medium">{user?.email}</p>
-              <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+              <p className="text-xs text-muted-foreground capitalize">{getRoleLabel(user?.role)}</p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem 

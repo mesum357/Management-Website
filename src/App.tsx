@@ -21,6 +21,7 @@ import HRMeetingsPage from "@/pages/hr/MeetingsPage";
 import NoticesPage from "@/pages/hr/NoticesPage";
 import AnalyticsPage from "@/pages/hr/AnalyticsPage";
 import ReportActivityPage from "@/pages/hr/ReportActivityPage";
+import HRTasksPage from "@/pages/hr/TasksPage";
 import Chat from "@/pages/Chat";
 
 // Boss Pages
@@ -88,6 +89,9 @@ const App = () => {
         } />
         <Route path="/hr/meetings" element={
           <HRRoute><HRMeetingsPage /></HRRoute>
+        } />
+        <Route path="/hr/tasks" element={
+          <HRRoute><HRTasksPage /></HRRoute>
         } />
         <Route path="/hr/notices" element={
           <HRRoute><NoticesPage /></HRRoute>
