@@ -127,7 +127,7 @@ export default function NoticesPage() {
       const fetchedNotices = noticesRes.data.data.notices || [];
       setNotices(fetchedNotices);
       setDepartments(deptRes.data.data.departments || []);
-      
+
       // Debug: Log the fetched notices
       console.log('Fetched notices:', fetchedNotices.length, fetchedNotices);
     } catch (err: any) {
@@ -192,7 +192,7 @@ export default function NoticesPage() {
         setSuccessMessage("Notice created successfully!");
         setIsCreateOpen(false);
         resetForm();
-        
+
         // Refresh the notices list immediately
         await fetchData();
         setTimeout(() => setSuccessMessage(null), 3000);
@@ -207,7 +207,7 @@ export default function NoticesPage() {
 
   const handleEditClick = (notice: Notice) => {
     setEditingNotice(notice);
-    
+
     // Determine status
     let status = "published";
     if (!notice.isActive) {
@@ -230,7 +230,7 @@ export default function NoticesPage() {
       expiresAt: notice.expiresAt ? new Date(notice.expiresAt).toISOString().split('T')[0] : "",
       status: status,
     });
-    
+
     setIsEditOpen(true);
   };
 
@@ -279,7 +279,7 @@ export default function NoticesPage() {
         setIsEditOpen(false);
         setEditingNotice(null);
         resetForm();
-        
+
         // Refresh the notices list immediately
         await fetchData();
         setTimeout(() => setSuccessMessage(null), 3000);
@@ -305,15 +305,15 @@ export default function NoticesPage() {
       setError(null);
 
       const response = await noticeAPI.delete(deletingNoticeId);
-      
+
       if (response.data.success) {
         setSuccessMessage("Notice deleted successfully");
         setIsDeleteOpen(false);
         setDeletingNoticeId(null);
-        
+
         // Remove the notice from the local state immediately for instant feedback
         setNotices(prevNotices => prevNotices.filter(n => n._id !== deletingNoticeId));
-        
+
         // Also refresh from server to ensure consistency
         await fetchData();
         setTimeout(() => setSuccessMessage(null), 3000);
@@ -339,14 +339,14 @@ export default function NoticesPage() {
   const getStatus = (notice: Notice) => {
     // Drafts are notices that are not active
     if (!notice.isActive) return "draft";
-    
+
     // Scheduled notices have a future publishedAt date
     // Actually, the backend uses publishedAt for when it was/will be published
     // So if publishedAt is in the future, it's scheduled
     if (notice.publishedAt && new Date(notice.publishedAt) > new Date()) {
       return "scheduled";
     }
-    
+
     // Otherwise it's published
     return "published";
   };
@@ -392,7 +392,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="z-[100]">
               {categoryOptions.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
                   {cat.label}
@@ -410,7 +410,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="z-[100]">
               {priorityOptions.map((pri) => (
                 <SelectItem key={pri.value} value={pri.value}>
                   {pri.label}
@@ -432,7 +432,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="z-[100]">
               <SelectItem value="all">All Employees</SelectItem>
               <SelectItem value="employees">Employees Only</SelectItem>
               <SelectItem value="managers">Managers Only</SelectItem>
@@ -450,7 +450,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper" className="z-[100]">
               <SelectItem value="published">Publish Now</SelectItem>
               <SelectItem value="scheduled">Schedule for Later</SelectItem>
               <SelectItem value="draft">Save as Draft</SelectItem>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Calendar,
+  Plus,
   Video,
   Users,
   Clock,
@@ -8,11 +9,8 @@ import {
   Loader2,
   RefreshCw,
   ExternalLink,
+  Check,
 } from "lucide-react";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -20,6 +18,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -27,10 +32,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { meetingAPI } from "@/lib/api";
+import { meetingAPI, employeeAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 interface Meeting {
@@ -62,41 +68,129 @@ interface Meeting {
 export default function MeetingsPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
 
+  // Form state
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    startDate: "",
+    startTime: "",
+    duration: "60",
+    meetingType: "in-person" as "in-person" | "virtual" | "hybrid",
+    location: "",
+    meetingLink: "",
+    selectedAttendees: [] as string[],
+  });
+
   useEffect(() => {
-    fetchMeetings();
+    fetchData();
   }, [statusFilter, typeFilter]);
 
-  const fetchMeetings = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
       const params: any = {};
       if (statusFilter !== "all") params.status = statusFilter;
-      
-      const res = await meetingAPI.getAll(params);
-      let fetchedMeetings = res.data.data.meetings || [];
-      
+
+      const [meetingsRes, employeesRes] = await Promise.all([
+        meetingAPI.getAll(params),
+        employeeAPI.getAll({ status: "active" }),
+      ]);
+
+      let fetchedMeetings = meetingsRes.data.data.meetings || [];
       if (typeFilter !== "all") {
         fetchedMeetings = fetchedMeetings.filter((m: Meeting) => m.meetingType === typeFilter);
       }
-      
+
       setMeetings(fetchedMeetings);
+      setEmployees(employeesRes.data.data.employees || []);
     } catch (error: any) {
-      console.error("Error fetching meetings:", error);
+      console.error("Error fetching data:", error);
       toast({
         title: "Error",
-        description: "Failed to load meetings",
+        description: "Failed to load data",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  const handleCreateMeeting = async () => {
+    if (!formData.title || !formData.startDate || !formData.startTime) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+
+      const startDateTime = new Date(`${formData.startDate}T${formData.startTime}`);
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setMinutes(endDateTime.getMinutes() + parseInt(formData.duration));
+
+      const meetingData = {
+        title: formData.title,
+        description: formData.description,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        meetingType: formData.meetingType,
+        location: formData.location || undefined,
+        meetingLink: formData.meetingLink || undefined,
+        attendees: formData.selectedAttendees.map((empId) => ({
+          employee: empId,
+          status: "pending",
+        })),
+      };
+
+      await meetingAPI.create(meetingData);
+
+      toast({
+        title: "Success",
+        description: "Meeting scheduled successfully",
+      });
+
+      setIsAddOpen(false);
+      resetForm();
+      await fetchData();
+    } catch (error: any) {
+      console.error("Error creating meeting:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to create meeting",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      startDate: "",
+      startTime: "",
+      duration: "60",
+      meetingType: "in-person",
+      location: "",
+      meetingLink: "",
+      selectedAttendees: [],
+    });
+  };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -152,12 +246,183 @@ export default function MeetingsPage() {
     <div className="animate-fade-in">
       <PageHeader
         title="Meetings"
-        description="View all scheduled meetings"
+        description="View and schedule team meetings"
         actions={
-          <Button variant="outline" onClick={fetchMeetings} disabled={loading}>
-            <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={fetchData} disabled={loading}>
+              <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+              Refresh
+            </Button>
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2" onClick={resetForm}>
+                  <Plus className="w-4 h-4" />
+                  Schedule Meeting
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Schedule New Meeting</DialogTitle>
+                  <DialogDescription>Schedule a new meeting with team members.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <Label htmlFor="title">Meeting Title *</Label>
+                    <Input
+                      id="title"
+                      placeholder="Enter meeting title..."
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="startDate">Date *</Label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={formData.startDate}
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                        min={new Date().toISOString().split("T")[0]}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="startTime">Time *</Label>
+                      <Input
+                        id="startTime"
+                        type="time"
+                        value={formData.startTime}
+                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="duration">Duration (minutes)</Label>
+                      <Select
+                        value={formData.duration}
+                        onValueChange={(value) => setFormData({ ...formData, duration: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper" className="z-[100]">
+                          <SelectItem value="30">30 minutes</SelectItem>
+                          <SelectItem value="60">1 hour</SelectItem>
+                          <SelectItem value="90">1.5 hours</SelectItem>
+                          <SelectItem value="120">2 hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="meetingType">Meeting Type</Label>
+                      <Select
+                        value={formData.meetingType}
+                        onValueChange={(value: any) => setFormData({ ...formData, meetingType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper" className="z-[100]">
+                          <SelectItem value="in-person">In-Person</SelectItem>
+                          <SelectItem value="virtual">Virtual</SelectItem>
+                          <SelectItem value="hybrid">Hybrid</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {formData.meetingType !== "virtual" && (
+                    <div>
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        placeholder="Room or location..."
+                        value={formData.location}
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                      />
+                    </div>
+                  )}
+                  {(formData.meetingType === "virtual" || formData.meetingType === "hybrid") && (
+                    <div>
+                      <Label htmlFor="meetingLink">Video Call Link</Label>
+                      <Input
+                        id="meetingLink"
+                        placeholder="https://meet.google.com/..."
+                        value={formData.meetingLink}
+                        onChange={(e) => setFormData({ ...formData, meetingLink: e.target.value })}
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <Label htmlFor="description">Description / Agenda</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Meeting agenda or notes..."
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label>Select Attendees</Label>
+                    <div className="border rounded-lg p-4 max-h-60 overflow-y-auto mt-2">
+                      {employees.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No employees available</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {employees.map((employee) => (
+                            <div key={employee._id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`attendee-${employee._id}`}
+                                checked={formData.selectedAttendees.includes(employee._id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setFormData({
+                                      ...formData,
+                                      selectedAttendees: [...formData.selectedAttendees, employee._id],
+                                    });
+                                  } else {
+                                    setFormData({
+                                      ...formData,
+                                      selectedAttendees: formData.selectedAttendees.filter((id) => id !== employee._id),
+                                    });
+                                  }
+                                }}
+                              />
+                              <label
+                                htmlFor={`attendee-${employee._id}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                              >
+                                {employee.firstName} {employee.lastName} ({employee.employeeId})
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsAddOpen(false)} disabled={actionLoading}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateMeeting} disabled={actionLoading}>
+                      {actionLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Scheduling...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4 mr-2" />
+                          Schedule Meeting
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         }
       />
 
@@ -396,8 +661,8 @@ export default function MeetingsPage() {
                             attendee.status === "accepted"
                               ? "approved"
                               : attendee.status === "declined"
-                              ? "rejected"
-                              : ("pending" as any)
+                                ? "rejected"
+                                : ("pending" as any)
                           }
                         />
                       </div>

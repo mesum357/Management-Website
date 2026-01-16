@@ -128,10 +128,10 @@ export default function TasksPage() {
         taskAPI.getAll(),
         employeeAPI.getAll({ status: "active" }),
       ]);
-      
+
       // Ensure we're getting the tasks array from the correct response structure
       const fetchedTasks = tasksRes.data?.data?.tasks || tasksRes.data?.tasks || [];
-      
+
       // Validate and normalize task data structure
       const normalizedTasks = fetchedTasks.map((task: any) => {
         // Ensure assignedTo is properly populated
@@ -156,7 +156,7 @@ export default function TasksPage() {
             };
           });
         }
-        
+
         return {
           _id: task._id,
           title: task.title || "Untitled Task",
@@ -175,7 +175,7 @@ export default function TasksPage() {
           attachments: task.attachments || [],
         };
       });
-      
+
       // Fill in employee details for tasks where assignedTo might be just IDs
       const fetchedEmployees = employeesRes.data?.data?.employees || employeesRes.data?.employees || [];
       const finalTasks = normalizedTasks.map((task: any) => {
@@ -196,7 +196,7 @@ export default function TasksPage() {
         }
         return task;
       });
-      
+
       setTasks(finalTasks);
       setEmployees(fetchedEmployees);
     } catch (error: any) {
@@ -449,132 +449,132 @@ export default function TasksPage() {
                     Assign a new task to team members.
                   </DialogDescription>
                 </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Task Title <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    placeholder="Enter task title..."
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Description</label>
-                  <Textarea
-                    placeholder="Describe the task..."
-                    className="min-h-[100px]"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4 mt-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">
-                      Assign To <span className="text-destructive">*</span>
+                      Task Title <span className="text-destructive">*</span>
                     </label>
-                <Select
-                  value={formData.assignedTo[0] || ""}
-                  onValueChange={(value) => {
-                    if (value && !formData.assignedTo.includes(value)) {
-                      setFormData({
-                        ...formData,
-                        assignedTo: [...formData.assignedTo, value],
-                      });
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select employee" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {employees.length === 0 ? (
-                      <SelectItem value="" disabled>No employees available</SelectItem>
-                    ) : (
-                      employees.map((emp) => (
-                        <SelectItem key={emp._id} value={emp._id}>
-                          {emp.firstName} {emp.lastName} {emp.employeeId ? `(${emp.employeeId})` : ''}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                    {formData.assignedTo.length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {formData.assignedTo.map((empId) => {
-                          const emp = employees.find((e) => e._id === empId);
-                          return (
-                            <div
-                              key={empId}
-                              className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-sm"
-                            >
-                              <span>
-                                {emp?.firstName} {emp?.lastName}
-                              </span>
-                              <button
-                                onClick={() => {
-                                  setFormData({
-                                    ...formData,
-                                    assignedTo: formData.assignedTo.filter((id) => id !== empId),
-                                  });
-                                }}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <Input
+                      placeholder="Enter task title..."
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Priority</label>
-                    <Select
-                      value={formData.priority}
-                      onValueChange={(value: any) =>
-                        setFormData({ ...formData, priority: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label className="text-sm font-medium mb-2 block">Description</label>
+                    <Textarea
+                      placeholder="Describe the task..."
+                      className="min-h-[100px]"
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Assign To <span className="text-destructive">*</span>
+                      </label>
+                      <Select
+                        value={formData.assignedTo[0] || ""}
+                        onValueChange={(value) => {
+                          if (value && !formData.assignedTo.includes(value)) {
+                            setFormData({
+                              ...formData,
+                              assignedTo: [...formData.assignedTo, value],
+                            });
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select employee" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {employees.length === 0 ? (
+                            <SelectItem value="" disabled>No employees available</SelectItem>
+                          ) : (
+                            employees.map((emp) => (
+                              <SelectItem key={emp._id} value={emp._id}>
+                                {emp.firstName} {emp.lastName} {emp.employeeId ? `(${emp.employeeId})` : ''}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {formData.assignedTo.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {formData.assignedTo.map((empId) => {
+                            const emp = employees.find((e) => e._id === empId);
+                            return (
+                              <div
+                                key={empId}
+                                className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-sm"
+                              >
+                                <span>
+                                  {emp?.firstName} {emp?.lastName}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setFormData({
+                                      ...formData,
+                                      assignedTo: formData.assignedTo.filter((id) => id !== empId),
+                                    });
+                                  }}
+                                  className="ml-1 hover:text-destructive"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Priority</label>
+                      <Select
+                        value={formData.priority}
+                        onValueChange={(value: any) =>
+                          setFormData({ ...formData, priority: value })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent position="popper" className="z-[100]">
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Due Date <span className="text-destructive">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={formData.dueDate}
+                      onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                    />
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
-                    Due Date <span className="text-destructive">*</span>
-                  </label>
-                  <Input
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateTask} disabled={submitting}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Task"
-                  )}
-                </Button>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateTask} disabled={submitting}>
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      "Create Task"
+                    )}
+                  </Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           ) : undefined
@@ -616,112 +616,112 @@ export default function TasksPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
-            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">
+                    Assign To <span className="text-destructive">*</span>
+                  </label>
+                  <Select
+                    value={formData.assignedTo[0] || ""}
+                    onValueChange={(value) => {
+                      if (value && !formData.assignedTo.includes(value)) {
+                        setFormData({
+                          ...formData,
+                          assignedTo: [...formData.assignedTo, value],
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {employees.length === 0 ? (
+                        <SelectItem value="" disabled>No employees available</SelectItem>
+                      ) : (
+                        employees.map((emp) => (
+                          <SelectItem key={emp._id} value={emp._id}>
+                            {emp.firstName} {emp.lastName} {emp.employeeId ? `(${emp.employeeId})` : ''}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {formData.assignedTo.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {formData.assignedTo.map((empId) => {
+                        const emp = employees.find((e) => e._id === empId);
+                        return (
+                          <div
+                            key={empId}
+                            className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-sm"
+                          >
+                            <span>
+                              {emp?.firstName} {emp?.lastName}
+                            </span>
+                            <button
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  assignedTo: formData.assignedTo.filter((id) => id !== empId),
+                                });
+                              }}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Priority</label>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value: any) =>
+                      setFormData({ ...formData, priority: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent position="popper" className="z-[100]">
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div>
                 <label className="text-sm font-medium mb-2 block">
-                  Assign To <span className="text-destructive">*</span>
+                  Due Date <span className="text-destructive">*</span>
                 </label>
-                <Select
-                  value={formData.assignedTo[0] || ""}
-                  onValueChange={(value) => {
-                    if (value && !formData.assignedTo.includes(value)) {
-                      setFormData({
-                        ...formData,
-                        assignedTo: [...formData.assignedTo, value],
-                      });
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select employee" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {employees.length === 0 ? (
-                      <SelectItem value="" disabled>No employees available</SelectItem>
-                    ) : (
-                      employees.map((emp) => (
-                        <SelectItem key={emp._id} value={emp._id}>
-                          {emp.firstName} {emp.lastName} {emp.employeeId ? `(${emp.employeeId})` : ''}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                {formData.assignedTo.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {formData.assignedTo.map((empId) => {
-                      const emp = employees.find((e) => e._id === empId);
-                      return (
-                        <div
-                          key={empId}
-                          className="flex items-center gap-1 bg-secondary px-2 py-1 rounded text-sm"
-                        >
-                          <span>
-                            {emp?.firstName} {emp?.lastName}
-                          </span>
-                          <button
-                            onClick={() => {
-                              setFormData({
-                                ...formData,
-                                assignedTo: formData.assignedTo.filter((id) => id !== empId),
-                              });
-                            }}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <Input
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateTask} disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Task"
                 )}
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Priority</label>
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value: any) =>
-                    setFormData({ ...formData, priority: value })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Due Date <span className="text-destructive">*</span>
-              </label>
-              <Input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateTask} disabled={submitting}>
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                "Update Task"
-              )}
-            </Button>
-          </DialogFooter>
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
@@ -1005,7 +1005,7 @@ export default function TasksPage() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper" className="z-[100]">
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="in-progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
