@@ -44,7 +44,7 @@ export default function BossDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  
+
   // Stats
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [activeTasks, setActiveTasks] = useState(0);
@@ -52,8 +52,8 @@ export default function BossDashboard() {
   const [attendanceRate, setAttendanceRate] = useState(0);
   const [totalTickets, setTotalTickets] = useState(0);
   const [latestTicketNumber, setLatestTicketNumber] = useState<string | null>(null);
-  const [attendanceTrend, setAttendanceTrend] = useState<any[]>([]);
-  
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+
   // Modal state
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [activeEmployees, setActiveEmployees] = useState<any[]>([]);
@@ -67,29 +67,22 @@ export default function BossDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
-      // Prepare dates
-      const fourWeeksAgo = new Date();
-      fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+
+      // Prepare date for attendance report (last 7 days)
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+
       // Fetch all data in parallel for better performance
-      const [dashboardRes, taskStatsRes, ticketsStatsRes, attendanceTrendRes, employeeStatsRes, attendanceDeptRes] = await Promise.all([
+      const [dashboardRes, taskStatsRes, ticketsStatsRes, attendanceReportRes] = await Promise.all([
         analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
         taskAPI.getStats().catch(() => ({ data: { data: { byStatus: [] } } })),
         ticketAPI.getStats().catch(() => ({ data: { data: { total: 0, latestTicketNumber: null } } })),
         analyticsAPI.getAttendanceReport({
-          startDate: fourWeeksAgo.toISOString(),
-          endDate: new Date().toISOString()
-        }).catch(() => ({ data: { data: { dailyAttendance: [] } } })),
-        employeeAPI.getStats().catch(() => ({ data: { data: { departmentStats: [] } } })),
-        analyticsAPI.getAttendanceReport({
-          startDate: thirtyDaysAgo.toISOString(),
+          startDate: weekAgo.toISOString(),
           endDate: new Date().toISOString()
         }).catch(() => ({ data: { data: { dailyAttendance: [] } } }))
       ]);
-      
+
       // Process dashboard stats
       const stats = dashboardRes.data.data;
       const totalEmployees = stats.totalEmployees || 0;
@@ -113,32 +106,33 @@ export default function BossDashboard() {
       }, 0);
       setActiveTasks(activeCount);
 
-      // Process attendance trend data
-      const dailyData = attendanceTrendRes.data.data.dailyAttendance || [];
-      
-      // Group by week
-      const weeklyData: any = {};
-      dailyData.forEach((day: any) => {
-        const date = new Date(day._id);
-        const weekNum = Math.floor((new Date().getTime() - date.getTime()) / (7 * 24 * 60 * 60 * 1000));
-        if (weekNum < 4) {
-          const weekKey = `W${4 - weekNum}`;
-          if (!weeklyData[weekKey]) {
-            weeklyData[weekKey] = { present: 0, total: 0 };
-          }
-          weeklyData[weekKey].present += day.present || 0;
-          weeklyData[weekKey].total += (day.present || 0) + (day.absent || 0) + (day.onLeave || 0);
+      // Process attendance data for weekly chart (like HR Dashboard)
+      const dailyData = attendanceReportRes.data.data.dailyAttendance || [];
+      const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+      // Map daily data to week days
+      const weekData = weekDays.map((day, index) => {
+        const dayDate = new Date();
+        dayDate.setDate(dayDate.getDate() - (dayDate.getDay() - 1 - index));
+        const dateStr = dayDate.toISOString().split('T')[0];
+
+        const dayData = dailyData.find((d: any) => d._id === dateStr);
+        if (dayData) {
+          return {
+            name: day,
+            present: dayData.present || 0,
+            absent: (dayData.absent || 0) + (dayData.onLeave || 0)
+          };
         }
+
+        // If no data for this day, use 0
+        return {
+          name: day,
+          present: 0,
+          absent: 0
+        };
       });
-      
-      const trendData = ['W1', 'W2', 'W3', 'W4'].map(week => {
-        const weekData = weeklyData[week] || { present: 0, total: 0 };
-        const rate = weekData.total > 0 
-          ? Math.round((weekData.present / weekData.total) * 100)
-          : attendanceRate;
-        return { week, rate: Math.max(80, Math.min(100, rate)) };
-      });
-      setAttendanceTrend(trendData);
+      setAttendanceData(weekData);
 
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
@@ -155,7 +149,7 @@ export default function BossDashboard() {
   const handleOpenEmployeeModal = async () => {
     setIsEmployeeModalOpen(true);
     setLoadingEmployees(true);
-    
+
     try {
       const response = await attendanceAPI.getTodayPresence();
       const data = response.data.data;
@@ -237,25 +231,31 @@ export default function BossDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         {/* Left Column - Charts */}
         <div className="lg:col-span-2 space-y-4 lg:space-y-6">
-          {/* Attendance Trend */}
+          {/* Weekly Attendance Chart */}
           <div className="bg-card rounded-xl border border-border p-4 sm:p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="section-title">Weekly Attendance Trend</h3>
-                <p className="text-sm text-muted-foreground">4-week overview</p>
+                <h3 className="section-title">Weekly Attendance</h3>
+                <p className="text-sm text-muted-foreground">Employee attendance overview</p>
               </div>
               <Button variant="outline" size="sm" onClick={() => navigate("/boss/analytics")}>
                 View Analytics
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-            {attendanceTrend.length > 0 ? (
+            {attendanceData.length > 0 ? (
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={attendanceTrend}>
+                  <AreaChart data={attendanceData}>
+                    <defs>
+                      <linearGradient id="colorPresent" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="week" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[80, 100]} />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "hsl(var(--card))",
@@ -263,8 +263,15 @@ export default function BossDashboard() {
                         borderRadius: "8px",
                       }}
                     />
-                    <Bar dataKey="rate" name="Attendance %" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Area
+                      type="monotone"
+                      dataKey="present"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorPresent)"
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             ) : (
@@ -303,9 +310,9 @@ export default function BossDashboard() {
       <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Employee Status</DialogTitle>
+            <DialogTitle>Attendance Status</DialogTitle>
             <DialogDescription>
-              View active (clocked in) and inactive (not clocked in) employees
+              Today's attendance overview - employees who have clocked in vs those who haven't
             </DialogDescription>
           </DialogHeader>
 
@@ -319,7 +326,7 @@ export default function BossDashboard() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  <h3 className="font-semibold text-lg">Active Employees</h3>
+                  <h3 className="font-semibold text-lg">Clocked In</h3>
                   <span className="text-sm text-muted-foreground">({activeEmployees.length})</span>
                 </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -357,7 +364,7 @@ export default function BossDashboard() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <XCircle className="w-5 h-5 text-red-500" />
-                  <h3 className="font-semibold text-lg">Inactive Employees</h3>
+                  <h3 className="font-semibold text-lg">Not Clocked In</h3>
                   <span className="text-sm text-muted-foreground">({inactiveEmployees.length})</span>
                 </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">

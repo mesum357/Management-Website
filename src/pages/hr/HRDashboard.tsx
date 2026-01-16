@@ -56,7 +56,7 @@ export default function HRDashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  
+
   // Stats
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [todayPresence, setTodayPresence] = useState(0);
@@ -65,7 +65,7 @@ export default function HRDashboard() {
   const [latestTicketNumber, setLatestTicketNumber] = useState<string | null>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [recentLeaveRequests, setRecentLeaveRequests] = useState<LeaveRequest[]>([]);
-  
+
   // Modal state
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [activeEmployees, setActiveEmployees] = useState<any[]>([]);
@@ -79,11 +79,11 @@ export default function HRDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       // Prepare date for attendance report
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      
+
       // Fetch all data in parallel for better performance
       const [dashboardRes, employeeStatsRes, leavesRes, ticketsStatsRes, attendanceReportRes, todayPresenceRes] = await Promise.all([
         analyticsAPI.getDashboard().catch(() => ({ data: { data: {} } })),
@@ -96,7 +96,7 @@ export default function HRDashboard() {
         }).catch(() => ({ data: { data: { dailyAttendance: [] } } })),
         attendanceAPI.getTodayPresence().catch(() => ({ data: { data: { presentToday: 0 } } }))
       ]);
-      
+
       // Process dashboard stats
       const stats = dashboardRes.data.data;
       setTotalEmployees(stats.totalEmployees || 0);
@@ -128,13 +128,13 @@ export default function HRDashboard() {
       // Process attendance data
       const dailyData = attendanceReportRes.data.data.dailyAttendance || [];
       const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      
+
       // Map daily data to week days
       const weekData = weekDays.map((day, index) => {
         const dayDate = new Date();
         dayDate.setDate(dayDate.getDate() - (dayDate.getDay() - 1 - index));
         const dateStr = dayDate.toISOString().split('T')[0];
-        
+
         const dayData = dailyData.find((d: any) => d._id === dateStr);
         if (dayData) {
           return {
@@ -143,7 +143,7 @@ export default function HRDashboard() {
             absent: (dayData.absent || 0) + (dayData.onLeave || 0)
           };
         }
-        
+
         // If no data for this day, use 0
         return {
           name: day,
@@ -174,7 +174,7 @@ export default function HRDashboard() {
   const handleOpenEmployeeModal = async () => {
     setIsEmployeeModalOpen(true);
     setLoadingEmployees(true);
-    
+
     try {
       const response = await attendanceAPI.getTodayPresence();
       const data = response.data.data;
@@ -390,9 +390,9 @@ export default function HRDashboard() {
       <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Employee Status</DialogTitle>
+            <DialogTitle>Attendance Status</DialogTitle>
             <DialogDescription>
-              View active (clocked in) and inactive (not clocked in) employees
+              Today's attendance overview - employees who have clocked in vs those who haven't
             </DialogDescription>
           </DialogHeader>
 
@@ -406,7 +406,7 @@ export default function HRDashboard() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  <h3 className="font-semibold text-lg">Active Employees</h3>
+                  <h3 className="font-semibold text-lg">Clocked In</h3>
                   <span className="text-sm text-muted-foreground">({activeEmployees.length})</span>
                 </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -444,7 +444,7 @@ export default function HRDashboard() {
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <XCircle className="w-5 h-5 text-red-500" />
-                  <h3 className="font-semibold text-lg">Inactive Employees</h3>
+                  <h3 className="font-semibold text-lg">Not Clocked In</h3>
                   <span className="text-sm text-muted-foreground">({inactiveEmployees.length})</span>
                 </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">

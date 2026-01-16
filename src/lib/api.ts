@@ -33,7 +33,7 @@ api.interceptors.response.use(
   (error) => {
     // Don't redirect on login endpoint failures - let the login component handle it
     const isLoginEndpoint = error.config?.url?.includes('/auth/login');
-    
+
     if (error.response?.status === 401 && !isLoginEndpoint) {
       // Token expired or invalid (but not on login attempts)
       console.log('[API Interceptor] 401 error on non-login endpoint, redirecting to login');
@@ -180,6 +180,8 @@ export const meetingAPI = {
 export const taskAPI = {
   getAll: (params?: any) =>
     api.get('/tasks', { params }),
+  getMy: (params?: any) =>
+    api.get('/tasks/my', { params }),
   getStats: () =>
     api.get('/tasks/stats'),
   getById: (id: string) =>
@@ -192,6 +194,12 @@ export const taskAPI = {
     api.post(`/tasks/${id}/comment`, { content }),
   updateSubtask: (taskId: string, subtaskId: string, isCompleted: boolean) =>
     api.put(`/tasks/${taskId}/subtask/${subtaskId}`, { isCompleted }),
+  uploadImage: (taskId: string, formData: FormData) =>
+    api.post(`/tasks/${taskId}/upload`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
   delete: (id: string) =>
     api.delete(`/tasks/${id}`),
 };
