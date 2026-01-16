@@ -4,11 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Search, 
-  Send, 
-  Paperclip, 
-  Smile, 
+import {
+  Search,
+  Send,
+  Paperclip,
+  Smile,
   MoreVertical,
   Phone,
   Video,
@@ -104,7 +104,7 @@ const Chat = () => {
     // Get socket URL from API URL
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
     const socketUrl = apiUrl.replace('/api', '');
-    
+
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
       auth: {
@@ -134,7 +134,7 @@ const Chat = () => {
         });
         scrollToBottom();
       }
-      
+
       // Update chat list
       fetchChats();
     };
@@ -276,7 +276,7 @@ const Chat = () => {
   const handleSelectUser = async (selectedUser: ChatUser) => {
     try {
       setLoading(true);
-      
+
       // Create or get existing private chat
       const response = await chatAPI.createPrivate(selectedUser._id);
       const chat = response.data.data.chat;
@@ -287,7 +287,7 @@ const Chat = () => {
 
       setSelectedChat(chatWithMessages);
       setMessages(chatWithMessages.messages?.filter((m: Message) => !m.isDeleted) || []);
-      
+
       // Refresh chats list
       fetchChats();
     } catch (err: any) {
@@ -301,7 +301,7 @@ const Chat = () => {
   const handleSelectChat = async (chat: Chat) => {
     try {
       setLoading(true);
-      
+
       // Fetch messages for this chat
       const messagesRes = await chatAPI.getById(chat._id);
       const chatWithMessages = messagesRes.data.data.chat;
@@ -321,7 +321,7 @@ const Chat = () => {
     if (!files || files.length === 0) return;
 
     const fileArray = Array.from(files);
-    
+
     // Validate file types
     if (isImage) {
       const imageFiles = fileArray.filter(file => file.type.startsWith('image/'));
@@ -338,7 +338,7 @@ const Chat = () => {
     try {
       setUploading(true);
       setError(null);
-      
+
       const uploadPromises = fileArray.map(async (file) => {
         try {
           const response = await chatAPI.uploadFile(file);
@@ -378,22 +378,22 @@ const Chat = () => {
 
     const messageContent = messageInput.trim();
     const attachmentsToSend = [...uploadedAttachments];
-    
+
     // Clear inputs immediately for better UX
     setMessageInput("");
     setUploadedAttachments([]);
     setSelectedFiles([]);
-    
+
     try {
       setSending(true);
-      
+
       const response = await chatAPI.sendMessage(
-        selectedChat._id, 
-        messageContent, 
+        selectedChat._id,
+        messageContent,
         attachmentsToSend.length > 0 ? (attachmentsToSend.some(a => a.type === 'image') ? 'image' : 'file') : 'text',
         attachmentsToSend
       );
-      
+
       if (response.data.success) {
         // Add message immediately for sender (optimistic update)
         // Other participants will receive via socket
@@ -405,7 +405,7 @@ const Chat = () => {
           return [...prev, newMessage];
         });
         scrollToBottom();
-        
+
         // Update chat list to update last message
         fetchChats();
       }
@@ -428,7 +428,7 @@ const Chat = () => {
     if (!user) return null;
     const other = chat.participants.find(p => p._id.toString() !== user.id);
     if (!other) return null;
-    
+
     // Format participant data
     if (other.employee) {
       return {
@@ -444,7 +444,7 @@ const Chat = () => {
         displayName: `${other.employee.firstName} ${other.employee.lastName}`
       };
     }
-    
+
     return {
       _id: other._id,
       email: other.email,
@@ -467,7 +467,7 @@ const Chat = () => {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    
+
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
@@ -494,7 +494,7 @@ const Chat = () => {
     return message.readBy?.some(r => r.user.toString() === user.id) || false;
   };
 
-  const filteredUsers = users.filter(u => 
+  const filteredUsers = users.filter(u =>
     u.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -525,15 +525,15 @@ const Chat = () => {
         <div className="p-4 border-b border-border">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search users..." 
+            <Input
+              placeholder="Search users..."
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
-        
+
         <ScrollArea className="flex-1">
           <div className="p-2">
             {/* Message Requests (Boss only) */}
@@ -542,10 +542,10 @@ const Chat = () => {
                 <p className="text-xs font-medium text-muted-foreground px-3 py-2">Message Requests</p>
                 {messageRequests.map((request: any) => {
                   const requester = request.from;
-                  const requesterName = requester.employee 
+                  const requesterName = requester.employee
                     ? `${requester.employee.firstName} ${requester.employee.lastName}`
                     : requester.email.split('@')[0];
-                  
+
                   return (
                     <div
                       key={request._id}
@@ -591,15 +591,15 @@ const Chat = () => {
                 {filteredChats.map((chat) => {
                   const other = getOtherParticipant(chat);
                   if (!other) return null;
-                  
+
                   return (
                     <button
                       key={chat._id}
                       onClick={() => handleSelectChat(chat)}
                       className={cn(
                         "w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left mb-2",
-                        selectedChat?._id === chat._id 
-                          ? "bg-primary/10" 
+                        selectedChat?._id === chat._id
+                          ? "bg-primary/10"
                           : "hover:bg-secondary/50"
                       )}
                     >
@@ -624,13 +624,13 @@ const Chat = () => {
                           <p className="text-small text-muted-foreground truncate">
                             {chat.lastMessage?.content || 'No messages yet'}
                           </p>
-                          {chat.lastMessage && 
-                           chat.lastMessage.sender._id.toString() !== user?.id &&
-                           !isMessageRead({ ...chat.lastMessage, readBy: [] } as Message) && (
-                            <Badge className="bg-primary text-primary-foreground min-w-[20px] h-5 flex items-center justify-center text-xs">
-                              1
-                            </Badge>
-                          )}
+                          {chat.lastMessage &&
+                            chat.lastMessage.sender._id.toString() !== user?.id &&
+                            !isMessageRead({ ...chat.lastMessage, readBy: [] } as Message) && (
+                              <Badge className="bg-primary text-primary-foreground min-w-[20px] h-5 flex items-center justify-center text-xs">
+                                1
+                              </Badge>
+                            )}
                         </div>
                       </div>
                     </button>
@@ -659,7 +659,7 @@ const Chat = () => {
                     className={cn(
                       "w-full flex items-center gap-3 p-3 rounded-xl transition-colors text-left mb-2",
                       selectedChat && getOtherParticipant(selectedChat)?._id === chatUser._id
-                        ? "bg-primary/10" 
+                        ? "bg-primary/10"
                         : "hover:bg-secondary/50"
                     )}
                   >
@@ -746,11 +746,11 @@ const Chat = () => {
                 </div>
               ) : (
                 messages.map((message) => {
-                  const isMe = typeof message.sender === 'object' 
+                  const isMe = typeof message.sender === 'object'
                     ? message.sender._id.toString() === user?.id
                     : message.sender === user?.id;
-                  const senderName = typeof message.sender === 'object' 
-                    ? message.sender.email 
+                  const senderName = typeof message.sender === 'object'
+                    ? message.sender.email
                     : 'Unknown';
 
                   return (
@@ -775,20 +775,20 @@ const Chat = () => {
                               <div key={idx} className="rounded-lg overflow-hidden">
                                 {attachment.type === 'image' ? (
                                   <a
-                                    href={attachment.url}
+                                    href={attachment.url.startsWith('http') ? attachment.url : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${attachment.url}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="block"
                                   >
                                     <img
-                                      src={attachment.url}
+                                      src={attachment.url.startsWith('http') ? attachment.url : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${attachment.url}`}
                                       alt={attachment.name}
                                       className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
                                     />
                                   </a>
                                 ) : (
                                   <a
-                                    href={attachment.url}
+                                    href={attachment.url.startsWith('http') ? attachment.url : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${attachment.url}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className={cn(
@@ -849,7 +849,7 @@ const Chat = () => {
                 {error}
               </div>
             )}
-            
+
             {/* Show uploaded attachments preview */}
             {uploadedAttachments.length > 0 && (
               <div className="mb-2 flex flex-wrap gap-2">
@@ -941,8 +941,8 @@ const Chat = () => {
               <Button variant="ghost" size="icon" type="button">
                 <Smile className="w-5 h-5" />
               </Button>
-              <Button 
-                size="icon" 
+              <Button
+                size="icon"
                 type="button"
                 disabled={(!messageInput.trim() && uploadedAttachments.length === 0) || sending || uploading}
                 onClick={handleSendMessage}

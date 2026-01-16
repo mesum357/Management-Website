@@ -306,7 +306,7 @@ export default function MeetingsPage() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent position="popper" className="z-[100]">
+                        <SelectContent className="z-[9999]">
                           <SelectItem value="30">30 minutes</SelectItem>
                           <SelectItem value="60">1 hour</SelectItem>
                           <SelectItem value="90">1.5 hours</SelectItem>
@@ -323,7 +323,7 @@ export default function MeetingsPage() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent position="popper" className="z-[100]">
+                        <SelectContent className="z-[9999]">
                           <SelectItem value="in-person">In-Person</SelectItem>
                           <SelectItem value="virtual">Virtual</SelectItem>
                           <SelectItem value="hybrid">Hybrid</SelectItem>
