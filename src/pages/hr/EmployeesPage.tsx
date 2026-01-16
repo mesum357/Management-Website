@@ -20,6 +20,7 @@ import {
   UserX,
   Snowflake,
   Trash2,
+  Download,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -78,6 +79,11 @@ interface Employee {
   gender?: string;
   status: "pending" | "active" | "on-leave" | "terminated" | "resigned" | "rejected";
   avatar?: string;
+  documents?: Array<{
+    name: string;
+    url: string;
+    uploadedAt: string;
+  }>;
 }
 
 interface PendingRegistration {
@@ -101,14 +107,14 @@ export default function EmployeesPage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [activeTab, setActiveTab] = useState("employees");
-  
+
   // Data states
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [pendingRegistrations, setPendingRegistrations] = useState<PendingRegistration[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   // Dialog states
   const [rejectDialog, setRejectDialog] = useState<{ open: boolean; userId: string | null }>({
     open: false,
@@ -158,7 +164,7 @@ export default function EmployeesPage() {
         api.get('/auth/pending-registrations'),
         api.get('/departments')
       ]);
-      
+
       setEmployees(employeesRes.data.data.employees || []);
       setPendingRegistrations(pendingRes.data.data.pendingRegistrations || []);
       setDepartments(deptRes.data.data.departments || []);
@@ -196,7 +202,7 @@ export default function EmployeesPage() {
 
   const handleReject = async () => {
     if (!rejectDialog.userId) return;
-    
+
     setIsProcessing(true);
     try {
       await api.put(`/auth/reject/${rejectDialog.userId}`, {
@@ -222,7 +228,7 @@ export default function EmployeesPage() {
 
   const handleFreeze = async () => {
     if (!freezeDialog.employeeId) return;
-    
+
     setIsProcessing(true);
     try {
       await employeeAPI.freeze(freezeDialog.employeeId, !freezeDialog.isFrozen);
@@ -245,7 +251,7 @@ export default function EmployeesPage() {
 
   const handleTerminate = async () => {
     if (!terminateDialog.employeeId) return;
-    
+
     setIsProcessing(true);
     try {
       await employeeAPI.terminate(terminateDialog.employeeId);
@@ -268,7 +274,7 @@ export default function EmployeesPage() {
 
   const handleDelete = async () => {
     if (!deleteDialog.employeeId) return;
-    
+
     setIsProcessing(true);
     try {
       await employeeAPI.delete(deleteDialog.employeeId);
@@ -401,8 +407,8 @@ export default function EmployeesPage() {
             <Clock className="w-4 h-4" />
             Pending Requests
             {pendingCount > 0 && (
-              <Badge 
-                variant="destructive" 
+              <Badge
+                variant="destructive"
                 className="ml-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
               >
                 {pendingCount}
@@ -551,12 +557,12 @@ export default function EmployeesPage() {
                             }}>
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setFreezeDialog({ 
-                                  open: true, 
-                                  employeeId: emp._id, 
+                                setFreezeDialog({
+                                  open: true,
+                                  employeeId: emp._id,
                                   isFrozen: false
                                 });
                               }}
@@ -564,7 +570,7 @@ export default function EmployeesPage() {
                               <Snowflake className="w-4 h-4 mr-2" />
                               Freeze Account
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setTerminateDialog({ open: true, employeeId: emp._id });
@@ -573,7 +579,7 @@ export default function EmployeesPage() {
                               <XCircle className="w-4 h-4 mr-2" />
                               Terminate Employee
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-destructive"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -653,12 +659,12 @@ export default function EmployeesPage() {
                         }}>
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
-                            setFreezeDialog({ 
-                              open: true, 
-                              employeeId: emp._id, 
+                            setFreezeDialog({
+                              open: true,
+                              employeeId: emp._id,
                               isFrozen: false
                             });
                           }}
@@ -666,7 +672,7 @@ export default function EmployeesPage() {
                           <Snowflake className="w-4 h-4 mr-2" />
                           Freeze Account
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation();
                             setTerminateDialog({ open: true, employeeId: emp._id });
@@ -675,7 +681,7 @@ export default function EmployeesPage() {
                           <XCircle className="w-4 h-4 mr-2" />
                           Terminate Employee
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-destructive"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -742,7 +748,7 @@ export default function EmployeesPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-3 md:flex-col lg:flex-row">
                       <p className="text-xs text-muted-foreground">
                         Applied: {formatDate(reg.createdAt)}
@@ -787,7 +793,7 @@ export default function EmployeesPage() {
           <DialogHeader>
             <DialogTitle>{freezeDialog.isFrozen ? 'Unfreeze' : 'Freeze'} Employee Account</DialogTitle>
             <DialogDescription>
-              Are you sure you want to {freezeDialog.isFrozen ? 'unfreeze' : 'freeze'} this employee's account? 
+              Are you sure you want to {freezeDialog.isFrozen ? 'unfreeze' : 'freeze'} this employee's account?
               {!freezeDialog.isFrozen && ' The employee will not be able to log in until the account is unfrozen.'}
             </DialogDescription>
           </DialogHeader>
@@ -1097,6 +1103,38 @@ export default function EmployeesPage() {
                 </div>
               </div>
 
+              {selectedEmployee.documents && selectedEmployee.documents.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-medium">Employee Documents</h4>
+                  <div className="space-y-2">
+                    {selectedEmployee.documents.map((doc, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <FileText className="w-4 h-4 text-destructive" />
+                          <div>
+                            <p className="text-sm font-medium">{doc.name}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {new Date(doc.uploadedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => window.open(doc.url, '_blank')}
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3 pt-4">
                 <Button className="flex-1">Edit Employee</Button>
                 <Button variant="outline" className="flex-1">
@@ -1155,7 +1193,7 @@ export default function EmployeesPage() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
+      </Dialog >
+    </div >
   );
 }
