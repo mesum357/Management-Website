@@ -297,9 +297,9 @@ export default function MeetingsPage() {
       meetingLink: meeting.meetingLink || "",
       selectedAttendees: meeting.attendees.map((a) => {
         if (typeof a.employee === 'object' && a.employee !== null) {
-          return a.employee._id || a.employee;
+          return (a.employee as any)._id || String(a.employee);
         }
-        return a.employee;
+        return String(a.employee);
       }),
     });
     setIsEditOpen(true);
@@ -370,7 +370,7 @@ export default function MeetingsPage() {
   const today = new Date().getDate();
   const defaultSelectedDay = selectedDay || weekDays.find((d) => d.isToday)?.date || weekDays[0]?.date || today;
   const selectedDayMeetings = defaultSelectedDay ? getDayMeetings(defaultSelectedDay) : [];
-  
+
   useEffect(() => {
     // Set default selected day to today when component mounts
     if (!selectedDay) {
@@ -446,7 +446,7 @@ export default function MeetingsPage() {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper">
                         <SelectItem value="30">30 minutes</SelectItem>
                         <SelectItem value="60">1 hour</SelectItem>
                         <SelectItem value="90">1.5 hours</SelectItem>
@@ -463,7 +463,7 @@ export default function MeetingsPage() {
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper">
                         <SelectItem value="in-person">In-Person</SelectItem>
                         <SelectItem value="virtual">Virtual</SelectItem>
                         <SelectItem value="hybrid">Hybrid</SelectItem>
@@ -837,7 +837,7 @@ export default function MeetingsPage() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper">
                     <SelectItem value="30">30 minutes</SelectItem>
                     <SelectItem value="60">1 hour</SelectItem>
                     <SelectItem value="90">1.5 hours</SelectItem>
@@ -854,7 +854,7 @@ export default function MeetingsPage() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent position="popper">
                     <SelectItem value="in-person">In-Person</SelectItem>
                     <SelectItem value="virtual">Virtual</SelectItem>
                     <SelectItem value="hybrid">Hybrid</SelectItem>

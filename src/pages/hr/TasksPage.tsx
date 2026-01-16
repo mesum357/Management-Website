@@ -330,7 +330,7 @@ export default function HRTasksPage() {
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="all">All Priority</SelectItem>
               <SelectItem value="urgent">Urgent</SelectItem>
               <SelectItem value="high">High</SelectItem>
@@ -342,7 +342,7 @@ export default function HRTasksPage() {
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="in-progress">In Progress</SelectItem>

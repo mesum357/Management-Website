@@ -540,7 +540,7 @@ export default function TasksPage() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent position="popper" className="z-[9999]">
+                        <SelectContent position="popper">
                           <SelectItem value="low">Low</SelectItem>
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="high">High</SelectItem>
@@ -635,7 +635,7 @@ export default function TasksPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Select employee" />
                     </SelectTrigger>
-                    <SelectContent className="max-h-[300px]">
+                    <SelectContent position="popper" className="max-h-[300px] z-[9999]">
                       {employees.length === 0 ? (
                         <SelectItem value="" disabled>No employees available</SelectItem>
                       ) : (
@@ -687,7 +687,7 @@ export default function TasksPage() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="z-[9999]">
+                    <SelectContent position="popper" className="z-[9999]">
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>
@@ -761,7 +761,7 @@ export default function TasksPage() {
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="all">All Priority</SelectItem>
               <SelectItem value="urgent">Urgent</SelectItem>
               <SelectItem value="high">High</SelectItem>
@@ -773,7 +773,7 @@ export default function TasksPage() {
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="in-progress">In Progress</SelectItem>
@@ -1005,7 +1005,7 @@ export default function TasksPage() {
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="z-[9999]">
+                  <SelectContent position="popper">
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="in-progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>

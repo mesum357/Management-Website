@@ -47,7 +47,7 @@ interface Notice {
   priority: string;
   targetAudience: string;
   departments?: Array<{ _id: string; name: string }>;
-  publishedBy?: { email: string; role?: string };
+  publishedBy?: { _id: string; email: string; role?: string };
   publishedAt: string;
   expiresAt?: string;
   isPinned: boolean;
@@ -128,10 +128,12 @@ export default function BossNoticesPage() {
       const fetchedNotices = noticesRes.data.data.notices || [];
       // Filter to show only notices created by boss/admin users
       const bossNotices = fetchedNotices.filter(
-        (notice: Notice) => notice.publishedBy?.role === "boss" || notice.publishedBy?.role === "admin" || user?.id === notice.publishedBy?._id
+        (notice: Notice) => notice.publishedBy?.role === "boss" || notice.publishedBy?.role === "admin" || user?.id === (notice.publishedBy as any)?._id
       );
       setNotices(bossNotices);
       setDepartments(deptRes.data.data.departments || []);
+      console.log('Fetched departments:', deptRes.data.data.departments?.length, deptRes.data.data.departments);
+      console.log('Fetched boss notices:', bossNotices.length, bossNotices);
     } catch (err: any) {
       console.error("Error fetching notices:", err);
       setError(err.response?.data?.message || "Failed to load notices");
@@ -204,7 +206,7 @@ export default function BossNoticesPage() {
 
   const handleEditClick = (notice: Notice) => {
     setEditingNotice(notice);
-    
+
     let status = "published";
     if (!notice.isActive) {
       status = "draft";
@@ -225,7 +227,8 @@ export default function BossNoticesPage() {
       expiresAt: notice.expiresAt ? new Date(notice.expiresAt).toISOString().split('T')[0] : "",
       status: status,
     });
-    
+    console.log('Editing notice, initial formData:', { ...formData, status });
+
     setIsEditOpen(true);
   };
 
@@ -296,7 +299,7 @@ export default function BossNoticesPage() {
       setError(null);
 
       const response = await noticeAPI.delete(deletingNoticeId);
-      
+
       if (response.data.success) {
         setSuccessMessage("Notice deleted successfully");
         setIsDeleteOpen(false);
@@ -372,7 +375,7 @@ export default function BossNoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               {categoryOptions.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
                   {cat.label}
@@ -390,7 +393,7 @@ export default function BossNoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               {priorityOptions.map((pri) => (
                 <SelectItem key={pri.value} value={pri.value}>
                   {pri.label}
@@ -412,7 +415,7 @@ export default function BossNoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="all">All Employees</SelectItem>
               <SelectItem value="employees">Employees Only</SelectItem>
               <SelectItem value="managers">Managers Only</SelectItem>
@@ -430,7 +433,7 @@ export default function BossNoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="published">Publish Now</SelectItem>
               <SelectItem value="scheduled">Schedule for Later</SelectItem>
               <SelectItem value="draft">Save as Draft</SelectItem>

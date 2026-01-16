@@ -46,7 +46,7 @@ interface Notice {
   priority: string;
   targetAudience: string;
   departments?: Array<{ _id: string; name: string }>;
-  publishedBy?: { email: string };
+  publishedBy?: { _id: string; email: string; role?: string };
   publishedAt: string;
   expiresAt?: string;
   isPinned: boolean;
@@ -393,7 +393,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" className="z-[9999]">
+            <SelectContent position="popper">
               {categoryOptions.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
                   {cat.label}
@@ -411,7 +411,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" className="z-[9999]">
+            <SelectContent position="popper">
               {priorityOptions.map((pri) => (
                 <SelectItem key={pri.value} value={pri.value}>
                   {pri.label}
@@ -433,7 +433,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" className="z-[9999]">
+            <SelectContent position="popper">
               <SelectItem value="all">All Employees</SelectItem>
               <SelectItem value="employees">Employees Only</SelectItem>
               <SelectItem value="managers">Managers Only</SelectItem>
@@ -451,7 +451,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent position="popper" className="z-[9999]">
+            <SelectContent position="popper">
               <SelectItem value="published">Publish Now</SelectItem>
               <SelectItem value="scheduled">Schedule for Later</SelectItem>
               <SelectItem value="draft">Save as Draft</SelectItem>
