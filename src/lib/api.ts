@@ -1,7 +1,28 @@
 import axios from 'axios';
 
+const resolveApiUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.startsWith('http') && !envUrl.includes('localhost')) {
+    return envUrl;
+  }
+
+  // If we are on a production-like domain but API is localhost or missing
+  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    // If we are on Render (e.g., office-management-website.onrender.com)
+    // Try to guess the backend URL based on the known backend pattern
+    if (window.location.hostname.includes('onrender.com')) {
+      return 'https://office-management-backend-cp7v.onrender.com/api';
+    }
+    // Fallback to relative if we can't guess
+    return '/api';
+  }
+
+  return envUrl || 'http://localhost:5000/api';
+};
+
 // API Base URL - connects to shared backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = resolveApiUrl();
+console.log('[API] Initializing with BASE_URL:', API_BASE_URL);
 
 // Create axios instance
 const api = axios.create({
@@ -11,6 +32,11 @@ const api = axios.create({
   },
   withCredentials: true,
 });
+
+export const resolveSocketUrl = () => {
+  const apiUrl = resolveApiUrl();
+  return apiUrl.replace(/\/api$/, '') || window.location.origin;
+};
 
 // Request interceptor - add auth token
 api.interceptors.request.use(

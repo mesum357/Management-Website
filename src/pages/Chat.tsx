@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { chatAPI, messageRequestAPI } from "@/lib/api";
+import { chatAPI, messageRequestAPI, resolveSocketUrl } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { io, Socket } from "socket.io-client";
 
@@ -55,6 +55,7 @@ interface Message {
   attachments?: Array<{
     name: string;
     url: string;
+    attachmentType?: string;
     type: string;
     size?: number;
   }>;
@@ -101,9 +102,8 @@ const Chat = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    // Get socket URL from API URL
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const socketUrl = apiUrl.replace('/api', '');
+    const socketUrl = resolveSocketUrl();
+    console.log('[Chat] Connecting to socket at:', socketUrl);
 
     const socket = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -771,46 +771,56 @@ const Chat = () => {
                       >
                         {message.attachments && message.attachments.length > 0 && (
                           <div className="mb-2 space-y-2">
-                            {message.attachments.map((attachment, idx) => (
-                              <div key={idx} className="rounded-lg overflow-hidden">
-                                {attachment.type === 'image' ? (
-                                  <a
-                                    href={attachment.url.startsWith('http') ? attachment.url : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${attachment.url}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block"
-                                  >
-                                    <img
-                                      src={attachment.url.startsWith('http') ? attachment.url : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${attachment.url}`}
-                                      alt={attachment.name}
-                                      className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                                    />
-                                  </a>
-                                ) : (
-                                  <a
-                                    href={attachment.url.startsWith('http') ? attachment.url : `${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${attachment.url}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={cn(
-                                      "flex items-center gap-2 p-2 rounded-lg border transition-colors",
-                                      isMe
-                                        ? "bg-primary-foreground/10 border-primary-foreground/20 hover:bg-primary-foreground/20"
-                                        : "bg-background border-border hover:bg-accent"
-                                    )}
-                                  >
-                                    <Paperclip className="w-4 h-4 flex-shrink-0" />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium truncate">{attachment.name}</p>
-                                      {attachment.size && (
-                                        <p className="text-xs text-muted-foreground">
-                                          {(attachment.size / 1024).toFixed(2)} KB
-                                        </p>
+                            {message.attachments.map((attachment, idx) => {
+                              const getFullUrl = (url: string) => {
+                                if (url.startsWith('http')) return url;
+                                const baseUrl = resolveSocketUrl();
+                                return `${baseUrl}${url}`;
+                              };
+
+                              const fileUrl = getFullUrl(attachment.url);
+
+                              return (
+                                <div key={idx} className="rounded-lg overflow-hidden">
+                                  {(attachment.attachmentType === 'image' || attachment.type === 'image') ? (
+                                    <a
+                                      href={fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="block"
+                                    >
+                                      <img
+                                        src={fileUrl}
+                                        alt={attachment.name}
+                                        className="max-w-full max-h-64 rounded-lg object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                                      />
+                                    </a>
+                                  ) : (
+                                    <a
+                                      href={fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={cn(
+                                        "flex items-center gap-2 p-2 rounded-lg border transition-colors",
+                                        isMe
+                                          ? "bg-primary-foreground/10 border-primary-foreground/20 hover:bg-primary-foreground/20"
+                                          : "bg-background border-border hover:bg-accent"
                                       )}
-                                    </div>
-                                  </a>
-                                )}
-                              </div>
-                            ))}
+                                    >
+                                      <Paperclip className="w-4 h-4 flex-shrink-0" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{attachment.name}</p>
+                                        {attachment.size && (
+                                          <p className="text-xs text-muted-foreground">
+                                            {(attachment.size / 1024).toFixed(2)} KB
+                                          </p>
+                                        )}
+                                      </div>
+                                    </a>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                         {message.content && (

@@ -127,6 +127,7 @@ export default function NoticesPage() {
       const fetchedNotices = noticesRes.data.data.notices || [];
       setNotices(fetchedNotices);
       setDepartments(deptRes.data.data.departments || []);
+      console.log('Fetched departments:', deptRes.data.data.departments?.length, deptRes.data.data.departments);
 
       // Debug: Log the fetched notices
       console.log('Fetched notices:', fetchedNotices.length, fetchedNotices);
@@ -392,7 +393,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[9999]">
+            <SelectContent position="popper" className="z-[9999]">
               {categoryOptions.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value}>
                   {cat.label}
@@ -410,7 +411,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[9999]">
+            <SelectContent position="popper" className="z-[9999]">
               {priorityOptions.map((pri) => (
                 <SelectItem key={pri.value} value={pri.value}>
                   {pri.label}
@@ -432,7 +433,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[9999]">
+            <SelectContent position="popper" className="z-[9999]">
               <SelectItem value="all">All Employees</SelectItem>
               <SelectItem value="employees">Employees Only</SelectItem>
               <SelectItem value="managers">Managers Only</SelectItem>
@@ -450,7 +451,7 @@ export default function NoticesPage() {
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="z-[9999]">
+            <SelectContent position="popper" className="z-[9999]">
               <SelectItem value="published">Publish Now</SelectItem>
               <SelectItem value="scheduled">Schedule for Later</SelectItem>
               <SelectItem value="draft">Save as Draft</SelectItem>
