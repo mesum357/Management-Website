@@ -97,6 +97,8 @@ export const authAPI = {
 export const employeeAPI = {
   getAll: (params?: any) =>
     api.get('/employees', { params }),
+  getWithStatus: (params?: any) =>
+    api.get('/employees/with-status', { params }),
   getById: (id: string) =>
     api.get(`/employees/${id}`),
   create: (data: any) =>

@@ -78,6 +78,7 @@ interface Employee {
   dateOfJoining: string;
   gender?: string;
   status: "pending" | "active" | "on-leave" | "terminated" | "resigned" | "rejected";
+  attendanceStatus?: "clocked-in" | "clocked-out" | "on-break" | "inactive";
   avatar?: string;
   documents?: Array<{
     name: string;
@@ -158,9 +159,9 @@ export default function EmployeesPage() {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      // Fetch employees with verified accounts (hasAccount=true)
+      // Fetch employees with verified accounts (hasAccount=true) and real-time status
       const [employeesRes, pendingRes, deptRes] = await Promise.all([
-        api.get('/employees', { params: { hasAccount: 'true' } }),
+        employeeAPI.getWithStatus({ hasAccount: 'true' }),
         api.get('/auth/pending-registrations'),
         api.get('/departments')
       ]);
@@ -524,7 +525,7 @@ export default function EmployeesPage() {
                       <td>{emp.designation}</td>
                       <td>{formatDate(emp.dateOfJoining)}</td>
                       <td>
-                        <StatusBadge status={emp.status} />
+                        <StatusBadge status={emp.attendanceStatus || emp.status} />
                       </td>
                       <td>
                         <DropdownMenu>
@@ -615,7 +616,7 @@ export default function EmployeesPage() {
                         <p className="text-sm text-muted-foreground">{emp.designation}</p>
                       </div>
                     </div>
-                    <StatusBadge status={emp.status} />
+                    <StatusBadge status={emp.attendanceStatus || emp.status} />
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
