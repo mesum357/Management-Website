@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { attendanceAPI, departmentAPI } from "@/lib/api";
+import * as XLSX from "xlsx";
 
 interface AttendanceRecord {
   _id: string;
@@ -88,11 +89,11 @@ export default function AttendancePage() {
 
       // Build query params
       const params: any = {};
-      
+
       // Date filtering
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       if (selectedDate === "today") {
         params.startDate = today.toISOString();
         params.endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString();
@@ -171,21 +172,76 @@ export default function AttendancePage() {
   };
 
   // Filter by department on client side if needed
-  const filteredRecords = selectedDepartment === "all" 
-    ? attendanceRecords 
+  const filteredRecords = selectedDepartment === "all"
+    ? attendanceRecords
     : attendanceRecords.filter(record => {
-        const dept = record.employee.department;
-        if (typeof dept === 'object' && dept) {
-          return dept._id === selectedDepartment;
-        }
-        return false;
-      });
+      const dept = record.employee.department;
+      if (typeof dept === 'object' && dept) {
+        return dept._id === selectedDepartment;
+      }
+      return false;
+    });
 
   // Calculate stats from records
   const presentCount = filteredRecords.filter(r => r.status === 'present').length;
   const lateCount = filteredRecords.filter(r => r.status === 'late').length;
   const absentCount = filteredRecords.filter(r => r.status === 'absent').length;
   const totalCount = filteredRecords.length;
+
+  // Export to Excel function
+  const handleExportReport = () => {
+    if (filteredRecords.length === 0) {
+      alert('No records to export');
+      return;
+    }
+
+    // Prepare data for export
+    const exportData = filteredRecords.map(record => ({
+      'Employee Name': `${record.employee.firstName} ${record.employee.lastName}`,
+      'Employee ID': record.employee.employeeId,
+      'Department': getEmployeeDepartment(record.employee),
+      'Date': formatDate(record.date),
+      'Check In': formatTime(record.checkIn?.time),
+      'Check Out': formatTime(record.checkOut?.time),
+      'Work Hours': calculateWorkHours(record.checkIn, record.checkOut),
+      'Status': statusConfig[record.status]?.label || record.status
+    }));
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 25 }, // Employee Name
+      { wch: 15 }, // Employee ID
+      { wch: 20 }, // Department
+      { wch: 15 }, // Date
+      { wch: 12 }, // Check In
+      { wch: 12 }, // Check Out
+      { wch: 12 }, // Work Hours
+      { wch: 12 }, // Status
+    ];
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Attendance Report');
+
+    // Generate filename with date and filters
+    const today = new Date().toISOString().split('T')[0];
+    const filterLabel = selectedDate === 'today' ? 'Today' :
+      selectedDate === 'yesterday' ? 'Yesterday' :
+        selectedDate === 'this-week' ? 'This_Week' :
+          selectedDate === 'this-month' ? 'This_Month' : '';
+    const deptLabel = selectedDepartment !== 'all'
+      ? departments.find(d => d._id === selectedDepartment)?.name?.replace(/\s+/g, '_') || ''
+      : 'All_Departments';
+    const statusLabel = selectedStatus !== 'all' ? selectedStatus : 'All_Status';
+
+    const filename = `Attendance_Report_${filterLabel}_${deptLabel}_${statusLabel}_${today}.xlsx`;
+
+    // Download the file
+    XLSX.writeFile(wb, filename);
+  };
 
   return (
     <div className="animate-fade-in">
@@ -197,7 +253,7 @@ export default function AttendancePage() {
             <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" onClick={handleExportReport} disabled={loading || filteredRecords.length === 0}>
               <Download className="w-4 h-4" />
               Export Report
             </Button>
