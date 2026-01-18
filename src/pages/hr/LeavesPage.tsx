@@ -76,7 +76,7 @@ interface Department {
 interface LeavePolicy {
   _id: string;
   leaveType: string;
-  monthlyLimit: number;
+  yearlyLimit: number;
   description?: string;
   isActive: boolean;
   createdAt: string;
@@ -93,17 +93,17 @@ export default function LeavesPage() {
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
+
   // Leave Policy state
   const [leavePolicies, setLeavePolicies] = useState<LeavePolicy[]>([]);
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | null>(null);
   const [policyForm, setPolicyForm] = useState({
     leaveType: '',
-    monthlyLimit: 0,
+    yearlyLimit: 0,
     description: ''
   });
   const [policyLoading, setPolicyLoading] = useState(false);
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -155,11 +155,11 @@ export default function LeavesPage() {
       setError(null);
 
       await leaveAPI.approve(leaveId);
-      
+
       setSuccessMessage('Leave request approved successfully');
       fetchData();
       setSelectedRequests(prev => prev.filter(id => id !== leaveId));
-      
+
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       console.error('Error approving leave:', err);
@@ -177,14 +177,14 @@ export default function LeavesPage() {
       setError(null);
 
       await leaveAPI.reject(rejectingLeaveId, rejectReason);
-      
+
       setSuccessMessage('Leave request rejected');
       setRejectDialogOpen(false);
       setRejectingLeaveId(null);
       setRejectReason("");
       fetchData();
       setSelectedRequests(prev => prev.filter(id => id !== rejectingLeaveId));
-      
+
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err: any) {
       console.error('Error rejecting leave:', err);
@@ -233,14 +233,14 @@ export default function LeavesPage() {
       console.log('[LeavesPage] Leave policies response:', response.data);
       const policies = response.data?.data?.policies || [];
       setLeavePolicies(policies);
-      
+
       if (policies.length === 0) {
         console.log('[LeavesPage] No leave policies found - this is normal for first time setup');
       }
     } catch (err: any) {
       console.error('[LeavesPage] Error fetching leave policies:', err);
       console.error('[LeavesPage] Error response:', err.response?.data);
-      
+
       // If it's a 500 error, it might be a backend issue - show a more helpful message
       if (err.response?.status === 500) {
         toast({
@@ -255,7 +255,7 @@ export default function LeavesPage() {
           variant: "destructive"
         });
       }
-      
+
       // Set empty array on error so UI doesn't break
       setLeavePolicies([]);
     } finally {
@@ -264,7 +264,7 @@ export default function LeavesPage() {
   };
 
   const handleSavePolicy = async () => {
-    if (!policyForm.leaveType || policyForm.monthlyLimit < 0) {
+    if (!policyForm.leaveType || policyForm.yearlyLimit < 0) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -299,20 +299,20 @@ export default function LeavesPage() {
     setEditingPolicy(policy);
     setPolicyForm({
       leaveType: policy.leaveType,
-      monthlyLimit: policy.monthlyLimit,
+      yearlyLimit: policy.yearlyLimit,
       description: policy.description || ''
     });
   };
 
   const handleUpdatePolicy = async () => {
-    if (!editingPolicy || policyForm.monthlyLimit < 0) {
+    if (!editingPolicy || policyForm.yearlyLimit < 0) {
       return;
     }
 
     try {
       setPolicyLoading(true);
       await leaveAPI.updatePolicy(editingPolicy._id, {
-        monthlyLimit: policyForm.monthlyLimit,
+        yearlyLimit: policyForm.yearlyLimit,
         description: policyForm.description
       });
       toast({
@@ -367,12 +367,12 @@ export default function LeavesPage() {
   const filteredRequests = departmentFilter === "all"
     ? leaveRequests
     : leaveRequests.filter(req => {
-        const dept = req.employee.department;
-        if (typeof dept === 'object' && dept) {
-          return dept._id === departmentFilter;
-        }
-        return false;
-      });
+      const dept = req.employee.department;
+      if (typeof dept === 'object' && dept) {
+        return dept._id === departmentFilter;
+      }
+      return false;
+    });
 
   // Stats
   const pendingCount = leaveRequests.filter(r => r.status === 'pending').length;
@@ -575,18 +575,18 @@ export default function LeavesPage() {
                       <td>
                         {request.status === "pending" && (
                           <div className="flex items-center gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               className="h-8 text-destructive hover:text-destructive"
                               onClick={() => openRejectDialog(request._id)}
                               disabled={actionLoading}
                             >
                               <XCircle className="w-4 h-4" />
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               className="h-8 text-success hover:text-success"
                               onClick={() => handleApprove(request._id)}
                               disabled={actionLoading}
@@ -650,8 +650,8 @@ export default function LeavesPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           className="text-destructive border-destructive/30 hover:bg-destructive/10"
                           onClick={() => openRejectDialog(request._id)}
@@ -659,7 +659,7 @@ export default function LeavesPage() {
                         >
                           Reject
                         </Button>
-                        <Button 
+                        <Button
                           size="sm"
                           onClick={() => handleApprove(request._id)}
                           disabled={actionLoading}
@@ -686,15 +686,15 @@ export default function LeavesPage() {
                 {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </h3>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
                 >
@@ -718,7 +718,7 @@ export default function LeavesPage() {
                 const day = i + 1;
                 const leaves = getLeavesForDay(day);
                 const isToday = new Date().toDateString() === new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toDateString();
-                
+
                 return (
                   <div
                     key={day}
@@ -765,7 +765,7 @@ export default function LeavesPage() {
               <div>
                 <h3 className="text-xl font-semibold text-foreground">Leave Policy Management</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Configure monthly leave limits for each leave type
+                  Configure yearly leave limits for each leave type
                 </p>
               </div>
               {!editingPolicy && (
@@ -804,14 +804,14 @@ export default function LeavesPage() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="monthlyLimit">Monthly Limit (Days)</Label>
+                    <Label htmlFor="yearlyLimit">Yearly Limit (Days)</Label>
                     <Input
-                      id="monthlyLimit"
+                      id="yearlyLimit"
                       type="number"
                       min="0"
-                      value={policyForm.monthlyLimit}
-                      onChange={(e) => setPolicyForm({ ...policyForm, monthlyLimit: parseInt(e.target.value) || 0 })}
-                      placeholder="Enter monthly limit"
+                      value={policyForm.yearlyLimit}
+                      onChange={(e) => setPolicyForm({ ...policyForm, yearlyLimit: parseInt(e.target.value) || 0 })}
+                      placeholder="Enter yearly limit"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -828,7 +828,7 @@ export default function LeavesPage() {
                 <div className="flex items-center gap-3 mt-4">
                   <Button
                     onClick={editingPolicy._id ? handleUpdatePolicy : handleSavePolicy}
-                    disabled={policyLoading || !policyForm.leaveType || policyForm.monthlyLimit < 0}
+                    disabled={policyLoading || !policyForm.leaveType || policyForm.yearlyLimit < 0}
                   >
                     {policyLoading ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -841,7 +841,7 @@ export default function LeavesPage() {
                     variant="outline"
                     onClick={() => {
                       setEditingPolicy(null);
-                      setPolicyForm({ leaveType: '', monthlyLimit: 0, description: '' });
+                      setPolicyForm({ leaveType: '', yearlyLimit: 0, description: '' });
                     }}
                   >
                     Cancel
@@ -874,7 +874,7 @@ export default function LeavesPage() {
                             {formatLeaveType(policy.leaveType)}
                           </h4>
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
-                            {policy.monthlyLimit} days/month
+                            {policy.yearlyLimit} days/year
                           </span>
                         </div>
                         {policy.description && (
@@ -931,8 +931,8 @@ export default function LeavesPage() {
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleReject}
               disabled={actionLoading || !rejectReason.trim()}
             >
