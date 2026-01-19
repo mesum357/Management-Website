@@ -14,6 +14,7 @@ import {
   Ticket,
   CheckCircle2,
   XCircle,
+  Coffee,
 } from "lucide-react";
 import { StatCard } from "@/components/shared/StatCard";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -69,6 +70,7 @@ export default function HRDashboard() {
   // Modal state
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
   const [activeEmployees, setActiveEmployees] = useState<any[]>([]);
+  const [onBreakEmployees, setOnBreakEmployees] = useState<any[]>([]);
   const [inactiveEmployees, setInactiveEmployees] = useState<any[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
 
@@ -179,6 +181,7 @@ export default function HRDashboard() {
       const response = await attendanceAPI.getTodayPresence();
       const data = response.data.data;
       setActiveEmployees(data.active || []);
+      setOnBreakEmployees(data.onBreak || []);
       setInactiveEmployees(data.inactive || []);
     } catch (error: any) {
       console.error('Error fetching employee presence data:', error);
@@ -200,6 +203,13 @@ export default function HRDashboard() {
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const formatBreakType = (reason: string) => {
+    if (!reason) return 'Break';
+    // Capitalize first letter and handle common break types
+    const formatted = reason.charAt(0).toUpperCase() + reason.slice(1).toLowerCase();
+    return formatted.replace(/_/g, ' ');
   };
 
   if (loading) {
@@ -388,11 +398,11 @@ export default function HRDashboard() {
 
       {/* Employee Modal */}
       <Dialog open={isEmployeeModalOpen} onOpenChange={setIsEmployeeModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Attendance Status</DialogTitle>
             <DialogDescription>
-              Today's attendance overview - employees who have clocked in vs those who haven't
+              Today's real-time employee status - active, on break, and inactive
             </DialogDescription>
           </DialogHeader>
 
@@ -401,12 +411,12 @@ export default function HRDashboard() {
               <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-              {/* Active Employees */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+              {/* Active Employees (Working) */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  <h3 className="font-semibold text-lg">Clocked In</h3>
+                  <h3 className="font-semibold text-lg">Active</h3>
                   <span className="text-sm text-muted-foreground">({activeEmployees.length})</span>
                 </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -414,17 +424,17 @@ export default function HRDashboard() {
                     activeEmployees.map((employee: any) => (
                       <div
                         key={employee._id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-border bg-card"
+                        className="flex items-center justify-between p-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20"
                       >
                         <div className="flex-1">
                           <p className="font-medium text-sm">
                             {employee.firstName} {employee.lastName}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {employee.employeeId} • {employee.department?.name || 'N/A'} • {employee.designation || 'N/A'}
+                            {employee.employeeId} • {employee.department?.name || 'N/A'}
                           </p>
                           {employee.checkInTime && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                               Clocked in: {formatTime(employee.checkInTime)}
                             </p>
                           )}
@@ -440,11 +450,52 @@ export default function HRDashboard() {
                 </div>
               </div>
 
+              {/* On Break Employees */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Coffee className="w-5 h-5 text-amber-500" />
+                  <h3 className="font-semibold text-lg">On Break</h3>
+                  <span className="text-sm text-muted-foreground">({onBreakEmployees.length})</span>
+                </div>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {onBreakEmployees.length > 0 ? (
+                    onBreakEmployees.map((employee: any) => (
+                      <div
+                        key={employee._id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">
+                            {employee.firstName} {employee.lastName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {employee.employeeId} • {employee.department?.name || 'N/A'}
+                          </p>
+                          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                            {formatBreakType(employee.breakReason)}
+                          </p>
+                          {employee.breakStartTime && (
+                            <p className="text-xs text-muted-foreground">
+                              Since: {formatTime(employee.breakStartTime)}
+                            </p>
+                          )}
+                        </div>
+                        <Coffee className="w-5 h-5 text-amber-500 flex-shrink-0 ml-2" />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No employees on break
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Inactive Employees */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <XCircle className="w-5 h-5 text-red-500" />
-                  <h3 className="font-semibold text-lg">Not Clocked In</h3>
+                  <h3 className="font-semibold text-lg">Inactive</h3>
                   <span className="text-sm text-muted-foreground">({inactiveEmployees.length})</span>
                 </div>
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -452,14 +503,14 @@ export default function HRDashboard() {
                     inactiveEmployees.map((employee: any) => (
                       <div
                         key={employee._id}
-                        className="flex items-center justify-between p-3 rounded-lg border border-border bg-card"
+                        className="flex items-center justify-between p-3 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20"
                       >
                         <div className="flex-1">
                           <p className="font-medium text-sm">
                             {employee.firstName} {employee.lastName}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {employee.employeeId} • {employee.department?.name || 'N/A'} • {employee.designation || 'N/A'}
+                            {employee.employeeId} • {employee.department?.name || 'N/A'}
                           </p>
                           {employee.isCheckedIn && (
                             <p className="text-xs text-orange-500 mt-1">
