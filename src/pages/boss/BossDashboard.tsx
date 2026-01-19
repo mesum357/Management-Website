@@ -52,6 +52,7 @@ export default function BossDashboard() {
   const [todayAttendance, setTodayAttendance] = useState(0);
   const [attendanceRate, setAttendanceRate] = useState(0);
   const [totalTickets, setTotalTickets] = useState(0);
+  const [unresolvedTickets, setUnresolvedTickets] = useState(0);
   const [latestTicketNumber, setLatestTicketNumber] = useState<string | null>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
 
@@ -96,6 +97,7 @@ export default function BossDashboard() {
       // Process ticket stats
       const ticketStats = ticketsStatsRes.data.data;
       setTotalTickets(ticketStats.total || 0);
+      setUnresolvedTickets((ticketStats.open || 0) + (ticketStats.inProgress || 0));
       setLatestTicketNumber(ticketStats.latestTicketNumber || null);
 
       // Process task stats
@@ -227,11 +229,11 @@ export default function BossDashboard() {
           variant="success"
         />
         <StatCard
-          title="Tickets"
-          value={latestTicketNumber || totalTickets.toString()}
-          subtitle={latestTicketNumber ? `Latest: ${latestTicketNumber}` : `${totalTickets} total tickets`}
+          title="Unresolved Tickets"
+          value={unresolvedTickets.toString()}
+          subtitle={`${totalTickets} total tickets`}
           icon={Ticket}
-          variant="default"
+          variant={unresolvedTickets > 0 ? "warning" : "default"}
           onClick={() => navigate("/hr/tickets")}
           clickable
         />

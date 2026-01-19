@@ -63,6 +63,7 @@ export default function HRDashboard() {
   const [todayPresence, setTodayPresence] = useState(0);
   const [pendingLeaves, setPendingLeaves] = useState(0);
   const [totalTickets, setTotalTickets] = useState(0);
+  const [unresolvedTickets, setUnresolvedTickets] = useState(0);
   const [latestTicketNumber, setLatestTicketNumber] = useState<string | null>(null);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const [recentLeaveRequests, setRecentLeaveRequests] = useState<LeaveRequest[]>([]);
@@ -107,6 +108,7 @@ export default function HRDashboard() {
       // Process ticket stats
       const ticketStats = ticketsStatsRes.data.data;
       setTotalTickets(ticketStats.total || 0);
+      setUnresolvedTickets((ticketStats.open || 0) + (ticketStats.inProgress || 0));
       setLatestTicketNumber(ticketStats.latestTicketNumber || null);
 
       // Process today's presence
@@ -258,11 +260,11 @@ export default function HRDashboard() {
           variant="default"
         />
         <StatCard
-          title="Tickets"
-          value={latestTicketNumber || totalTickets.toString()}
-          subtitle={latestTicketNumber ? `Latest: ${latestTicketNumber}` : `${totalTickets} total tickets`}
+          title="Unresolved Tickets"
+          value={unresolvedTickets.toString()}
+          subtitle={`${totalTickets} total tickets`}
           icon={Ticket}
-          variant="default"
+          variant={unresolvedTickets > 0 ? "warning" : "default"}
           onClick={() => navigate("/hr/tickets")}
           clickable
         />
