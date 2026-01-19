@@ -214,6 +214,14 @@ export default function HRDashboard() {
     return formatted.replace(/_/g, ' ');
   };
 
+  const formatBreakTime = (minutes: number) => {
+    if (!minutes || minutes === 0) return null;
+    if (minutes < 60) return `${minutes}m break`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m break` : `${hours}h break`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -440,6 +448,11 @@ export default function HRDashboard() {
                               Clocked in: {formatTime(employee.checkInTime)}
                             </p>
                           )}
+                          {employee.totalBreakTime > 0 && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                              {formatBreakTime(employee.totalBreakTime)}
+                            </p>
+                          )}
                         </div>
                         <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 ml-2" />
                       </div>
@@ -517,6 +530,11 @@ export default function HRDashboard() {
                           {employee.isCheckedIn && (
                             <p className="text-xs text-orange-500 mt-1">
                               {employee.isCheckedOut ? 'Clocked out' : 'Status unknown'}
+                            </p>
+                          )}
+                          {employee.totalBreakTime > 0 && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                              {formatBreakTime(employee.totalBreakTime)}
                             </p>
                           )}
                         </div>
