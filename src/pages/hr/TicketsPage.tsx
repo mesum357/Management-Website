@@ -470,9 +470,16 @@ export default function TicketsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getStatusColor(ticket.status))}>
-                        {formatStatus(ticket.status)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getStatusColor(ticket.status))}>
+                          {formatStatus(ticket.status)}
+                        </span>
+                        {ticket.status === "resolved" && ticket.resolutionNotes && (
+                          <span className="text-xs text-muted-foreground italic truncate max-w-[120px]" title={ticket.resolutionNotes}>
+                            (Has notes)
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-muted-foreground">{formatDate(ticket.createdAt)}</span>
@@ -567,18 +574,25 @@ export default function TicketsPage() {
               </div>
 
               {selectedTicket.resolvedAt && (
-                <div className="border-t pt-4 space-y-2">
-                  <Label className="text-muted-foreground">Resolution</Label>
-                  <p className="text-sm">
-                    <strong>Resolved by:</strong> {selectedTicket.resolvedBy?.email || "N/A"}
-                  </p>
-                  <p className="text-sm">
-                    <strong>Resolved at:</strong> {formatDateTime(selectedTicket.resolvedAt)}
-                  </p>
-                  {selectedTicket.resolutionNotes && (
+                <div className="border-t pt-4 space-y-3">
+                  <div className="flex items-center gap-2 text-success">
+                    <CheckCircle className="w-4 h-4" />
+                    <Label className="text-success font-medium">Resolution Details</Label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-muted-foreground">Resolution Notes</Label>
-                      <p className="mt-1 text-sm whitespace-pre-wrap">{selectedTicket.resolutionNotes}</p>
+                      <Label className="text-muted-foreground text-xs">Resolved by</Label>
+                      <p className="text-sm font-medium">{selectedTicket.resolvedBy?.email || "N/A"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Resolved at</Label>
+                      <p className="text-sm font-medium">{formatDateTime(selectedTicket.resolvedAt)}</p>
+                    </div>
+                  </div>
+                  {selectedTicket.resolutionNotes && (
+                    <div className="bg-success/5 border border-success/20 rounded-lg p-4 mt-3">
+                      <Label className="text-muted-foreground text-xs block mb-2">Resolution Notes</Label>
+                      <p className="text-sm whitespace-pre-wrap">{selectedTicket.resolutionNotes}</p>
                     </div>
                   )}
                 </div>
