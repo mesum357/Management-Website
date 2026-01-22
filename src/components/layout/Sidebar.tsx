@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import mmhLogo from "@/assets/mmh-logo.png";
 import {
   LayoutDashboard,
   Users,
@@ -72,7 +73,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const prevPathnameRef = useRef<string | null>(null);
-  
+
   // Close sidebar when route changes on mobile (but not on initial mount)
   useEffect(() => {
     if (prevPathnameRef.current !== null && prevPathnameRef.current !== location.pathname) {
@@ -83,7 +84,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     }
     prevPathnameRef.current = location.pathname;
   }, [location.pathname, onClose]);
-  
+
   // Determine which portal to show based on current route
   const isOnBossRoute = location.pathname.startsWith('/boss');
   const isOnHRRoute = location.pathname.startsWith('/hr');
@@ -117,7 +118,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const getNavItems = () => {
     const canAccessHRPortal = user?.role === 'admin' || user?.role === 'hr';
     const canAccessBossPortal = user?.role === 'admin' || user?.role === 'boss' || user?.role === 'manager';
-    
+
     // For admin, show based on current route to avoid "two sidebars" look
     if (user?.role === 'admin') {
       if (isOnBossRoute) {
@@ -134,7 +135,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   };
 
   const { hr: hrItems, boss: bossItems, canSwitchTo } = getNavItems();
-  
+
   const handleSwitchPortal = () => {
     if (canSwitchTo === 'hr') {
       navigate('/hr');
@@ -171,22 +172,22 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
   return (
     <aside
-        className={cn(
-          "fixed left-0 top-0 h-screen bg-sidebar flex flex-col z-[55] transition-all duration-300 border-r border-sidebar-border",
-          isCollapsed ? "w-16" : "w-64",
-          // Mobile/Tablet: slide in/out from left
-          "lg:translate-x-0",
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        )}
-      >
+      className={cn(
+        "fixed left-0 top-0 h-screen bg-sidebar flex flex-col z-[55] transition-all duration-300 border-r border-sidebar-border",
+        isCollapsed ? "w-16" : "w-64",
+        // Mobile/Tablet: slide in/out from left
+        "lg:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+      )}
+    >
       {/* Header */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
         {!isCollapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-sidebar-primary-foreground" />
+            <div className="w-8 h-8 rounded-lg bg-white p-0.5 flex items-center justify-center">
+              <img src={mmhLogo} alt="MMH Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-sidebar-accent-foreground text-lg">Cross DIGI</span>
+            <span className="font-bold text-sidebar-accent-foreground text-lg">MMH Corporate</span>
           </div>
         )}
         <div className="flex items-center gap-2">
@@ -242,7 +243,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             </div>
           </div>
         )}
-        
+
         {/* Switch Portal Button for Admin */}
         {canSwitchTo && (
           <div className="mt-6 pt-4 border-t border-sidebar-border">
@@ -268,7 +269,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       <div className="p-3 border-t border-sidebar-border">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button 
+            <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
@@ -303,8 +304,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               )}
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            align="end" 
+          <DropdownMenuContent
+            align="end"
             sideOffset={5}
             className="w-56 z-[70]"
             onClick={(e) => e.stopPropagation()}
@@ -314,11 +315,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               <p className="text-xs text-muted-foreground capitalize">{getRoleLabel(user?.role)}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
                 handleLogout();
-              }} 
+              }}
               className="text-destructive cursor-pointer focus:text-destructive"
             >
               <LogOut className="w-4 h-4 mr-2" />
