@@ -9,7 +9,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import mmhLogo from "@/assets/mmh-logo.png";
-import authBg from "@/assets/auth-bg.jpg";
+import loginBg from "@/assets/login-bg.png";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -99,7 +99,7 @@ const Login = () => {
       <div
         className="absolute inset-0 z-0 transition-opacity duration-1000"
         style={{
-          backgroundImage: `url(${authBg})`,
+          backgroundImage: `url(${loginBg})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
@@ -133,7 +133,7 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@company.com"
+                  placeholder="admin@mmh.com"
                   className="pl-12 h-12 bg-white/70 border-gray-300"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -182,14 +182,20 @@ const Login = () => {
               <p className="text-xs text-muted-foreground text-center mb-3 font-semibold">
                 TEST ACCOUNTS
               </p>
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="text-center">
-                  <p className="font-bold text-foreground">HR Portal</p>
-                  <p className="text-muted-foreground">hr@company.com</p>
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="text-center">
+                    <p className="font-bold text-foreground">Founder</p>
+                    <p className="text-muted-foreground">admin@mmh.com</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-foreground">CEO</p>
+                    <p className="text-muted-foreground">ceo@mmh.com</p>
+                  </div>
                 </div>
-                <div className="text-center">
-                  <p className="font-bold text-foreground">Boss View</p>
-                  <p className="text-muted-foreground">boss@company.com</p>
+                <div className="text-center text-xs">
+                  <p className="font-bold text-foreground">HR Portal</p>
+                  <p className="text-muted-foreground">hr@mmh.com</p>
                 </div>
               </div>
               <p className="text-center text-muted-foreground mt-3 text-[10px]">
