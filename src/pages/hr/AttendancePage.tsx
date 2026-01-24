@@ -48,6 +48,11 @@ interface AttendanceRecord {
   };
   status: "present" | "late" | "absent" | "half-day" | "on-leave";
   workingHours?: number;
+  breaks?: Array<{
+    startTime: string;
+    endTime?: string;
+    duration?: number;
+  }>;
 }
 
 interface Department {
@@ -170,6 +175,18 @@ export default function AttendancePage() {
     return `${hours}h ${minutes}m`;
   };
 
+  const calculateBreakTime = (record: AttendanceRecord) => {
+    if (!record.breaks || record.breaks.length === 0) return "0m";
+    const totalMinutes = record.breaks.reduce((total, b) => total + (b.duration || 0), 0);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
   const getEmployeeDepartment = (employee: AttendanceRecord['employee']) => {
     if (typeof employee.department === 'object' && employee.department) {
       return employee.department.name;
@@ -209,6 +226,7 @@ export default function AttendancePage() {
       'Date': formatDate(record.date),
       'Check In': formatTime(record.checkIn?.time),
       'Check Out': formatTime(record.checkOut?.time),
+      'Break Time': calculateBreakTime(record),
       'Work Hours': calculateWorkHours(record),
       'Status': statusConfig[record.status]?.label || record.status
     }));
@@ -372,6 +390,7 @@ export default function AttendancePage() {
                     <th>Date</th>
                     <th>Check In</th>
                     <th>Check Out</th>
+                    <th>Break Time</th>
                     <th>Work Hours</th>
                     <th>Status</th>
                   </tr>
@@ -400,6 +419,7 @@ export default function AttendancePage() {
                           </span>
                         </td>
                         <td>{formatTime(record.checkOut?.time)}</td>
+                        <td>{calculateBreakTime(record)}</td>
                         <td>{calculateWorkHours(record)}</td>
                         <td>
                           <span className={cn("badge-status flex items-center gap-1.5 w-fit", config.color)}>
