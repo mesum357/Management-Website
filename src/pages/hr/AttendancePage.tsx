@@ -154,10 +154,16 @@ export default function AttendancePage() {
     });
   };
 
-  const calculateWorkHours = (checkIn?: { time: string }, checkOut?: { time: string }) => {
-    if (!checkIn?.time || !checkOut?.time) return "-";
-    const inTime = new Date(checkIn.time);
-    const outTime = new Date(checkOut.time);
+  const calculateWorkHours = (record: AttendanceRecord) => {
+    if (record.workingHours !== undefined && record.workingHours !== null) {
+      const hours = Math.floor(record.workingHours);
+      const minutes = Math.round((record.workingHours - hours) * 60);
+      return `${hours}h ${minutes}m`;
+    }
+
+    if (!record.checkIn?.time || !record.checkOut?.time) return "-";
+    const inTime = new Date(record.checkIn.time);
+    const outTime = new Date(record.checkOut.time);
     const diffMs = outTime.getTime() - inTime.getTime();
     const hours = Math.floor(diffMs / (1000 * 60 * 60));
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -203,7 +209,7 @@ export default function AttendancePage() {
       'Date': formatDate(record.date),
       'Check In': formatTime(record.checkIn?.time),
       'Check Out': formatTime(record.checkOut?.time),
-      'Work Hours': calculateWorkHours(record.checkIn, record.checkOut),
+      'Work Hours': calculateWorkHours(record),
       'Status': statusConfig[record.status]?.label || record.status
     }));
 
@@ -280,7 +286,7 @@ export default function AttendancePage() {
         <StatCard
           title="Late Arrivals"
           value={String(lateCount)}
-          subtitle="After 9:30 AM"
+          subtitle="After 7:05 AM"
           icon={Clock}
           variant="warning"
         />
@@ -394,7 +400,7 @@ export default function AttendancePage() {
                           </span>
                         </td>
                         <td>{formatTime(record.checkOut?.time)}</td>
-                        <td>{calculateWorkHours(record.checkIn, record.checkOut)}</td>
+                        <td>{calculateWorkHours(record)}</td>
                         <td>
                           <span className={cn("badge-status flex items-center gap-1.5 w-fit", config.color)}>
                             <Icon className="w-3.5 h-3.5" />
