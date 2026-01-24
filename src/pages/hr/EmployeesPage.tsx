@@ -19,7 +19,6 @@ import {
   UserCheck,
   UserX,
   Snowflake,
-  Trash2,
   Download,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -79,6 +78,7 @@ interface Employee {
   gender?: string;
   status: "pending" | "active" | "on-leave" | "terminated" | "resigned" | "rejected";
   attendanceStatus?: "clocked-in" | "clocked-out" | "on-break" | "inactive";
+  isActive?: boolean;
   avatar?: string;
   documents?: Array<{
     name: string;
@@ -131,24 +131,13 @@ export default function EmployeesPage() {
     open: false,
     employeeId: null
   });
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; employeeId: string | null }>({
+  const [unterminateDialog, setUnterminateDialog] = useState<{ open: boolean; employeeId: string | null }>({
     open: false,
     employeeId: null
   });
   const [editDialog, setEditDialog] = useState<{ open: boolean; employee: Employee | null }>({
     open: false,
     employee: null
-  });
-  const [editFormData, setEditFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    department: "",
-    designation: "",
-    gender: "",
-    status: "active" as "pending" | "active" | "on-leave" | "terminated" | "resigned" | "rejected",
-    dateOfJoining: "",
   });
 
   // Fetch data
@@ -273,22 +262,22 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!deleteDialog.employeeId) return;
+  const handleUnterminate = async () => {
+    if (!unterminateDialog.employeeId) return;
 
     setIsProcessing(true);
     try {
-      await employeeAPI.delete(deleteDialog.employeeId);
+      await employeeAPI.unterminate(unterminateDialog.employeeId);
       toast({
-        title: "Deleted",
-        description: "Employee has been permanently deleted.",
+        title: "Unterminated",
+        description: "Employee has been unterminated successfully.",
       });
-      setDeleteDialog({ open: false, employeeId: null });
+      setUnterminateDialog({ open: false, employeeId: null });
       fetchData(); // Refresh data
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to delete employee",
+        description: error.response?.data?.message || "Failed to unterminate employee",
         variant: "destructive"
       });
     } finally {
@@ -296,55 +285,7 @@ export default function EmployeesPage() {
     }
   };
 
-  const handleEdit = async () => {
-    if (!editDialog.employee) return;
 
-    if (!editFormData.firstName.trim() || !editFormData.lastName.trim()) {
-      toast({
-        title: "Error",
-        description: "First name and last name are required",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!editFormData.email.trim()) {
-      toast({
-        title: "Error",
-        description: "Email is required",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!editFormData.department) {
-      toast({
-        title: "Error",
-        description: "Department is required",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    try {
-      await employeeAPI.update(editDialog.employee._id, editFormData);
-      toast({
-        title: "Success",
-        description: "Employee updated successfully.",
-      });
-      setEditDialog({ open: false, employee: null });
-      fetchData(); // Refresh data
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to update employee",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
@@ -525,7 +466,7 @@ export default function EmployeesPage() {
                       <td>{emp.designation}</td>
                       <td>{formatDate(emp.dateOfJoining)}</td>
                       <td>
-                        <StatusBadge status={emp.attendanceStatus || emp.status} />
+                        <StatusBadge status={emp.status === 'terminated' ? 'terminated' : (emp.attendanceStatus || emp.status)} />
                       </td>
                       <td>
                         <DropdownMenu>
@@ -535,61 +476,42 @@ export default function EmployeesPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedEmployee(emp);
-                            }}>
-                              View Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => {
-                              e.stopPropagation();
-                              setEditDialog({ open: true, employee: emp });
-                              setEditFormData({
-                                firstName: emp.firstName || "",
-                                lastName: emp.lastName || "",
-                                email: emp.email || "",
-                                phone: emp.phone || "",
-                                department: emp.department?._id || "",
-                                designation: emp.designation || "",
-                                gender: emp.gender || "",
-                                status: emp.status || "active",
-                                dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining).toISOString().split('T')[0] : "",
-                              });
-                            }}>
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setFreezeDialog({
-                                  open: true,
-                                  employeeId: emp._id,
-                                  isFrozen: false
-                                });
-                              }}
-                            >
-                              <Snowflake className="w-4 h-4 mr-2" />
-                              Freeze Account
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setTerminateDialog({ open: true, employeeId: emp._id });
-                              }}
-                            >
-                              <XCircle className="w-4 h-4 mr-2" />
-                              Terminate Employee
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteDialog({ open: true, employeeId: emp._id });
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete Employee
-                            </DropdownMenuItem>
+                            {emp.status === 'terminated' ? (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setUnterminateDialog({ open: true, employeeId: emp._id });
+                                }}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Unterminate Employee
+                              </DropdownMenuItem>
+                            ) : (
+                              <>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFreezeDialog({
+                                      open: true,
+                                      employeeId: emp._id,
+                                      isFrozen: emp.isActive === false
+                                    });
+                                  }}
+                                >
+                                  <Snowflake className="w-4 h-4 mr-2" />
+                                  {emp.isActive === false ? 'Unfreeze Account' : 'Freeze Account'}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setTerminateDialog({ open: true, employeeId: emp._id });
+                                  }}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Terminate Employee
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -616,7 +538,7 @@ export default function EmployeesPage() {
                         <p className="text-sm text-muted-foreground">{emp.designation}</p>
                       </div>
                     </div>
-                    <StatusBadge status={emp.attendanceStatus || emp.status} />
+                    <StatusBadge status={emp.status === 'terminated' ? 'terminated' : (emp.attendanceStatus || emp.status)} />
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -637,61 +559,42 @@ export default function EmployeesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedEmployee(emp);
-                        }}>
-                          View Profile
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
-                          setEditDialog({ open: true, employee: emp });
-                          setEditFormData({
-                            firstName: emp.firstName || "",
-                            lastName: emp.lastName || "",
-                            email: emp.email || "",
-                            phone: emp.phone || "",
-                            department: emp.department?._id || "",
-                            designation: emp.designation || "",
-                            gender: emp.gender || "",
-                            status: emp.status || "active",
-                            dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining).toISOString().split('T')[0] : "",
-                          });
-                        }}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFreezeDialog({
-                              open: true,
-                              employeeId: emp._id,
-                              isFrozen: false
-                            });
-                          }}
-                        >
-                          <Snowflake className="w-4 h-4 mr-2" />
-                          Freeze Account
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setTerminateDialog({ open: true, employeeId: emp._id });
-                          }}
-                        >
-                          <XCircle className="w-4 h-4 mr-2" />
-                          Terminate Employee
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteDialog({ open: true, employeeId: emp._id });
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete Employee
-                        </DropdownMenuItem>
+                        {emp.status === 'terminated' ? (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUnterminateDialog({ open: true, employeeId: emp._id });
+                            }}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Unterminate Employee
+                          </DropdownMenuItem>
+                        ) : (
+                          <>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFreezeDialog({
+                                  open: true,
+                                  employeeId: emp._id,
+                                  isFrozen: emp.isActive === false
+                                });
+                              }}
+                            >
+                              <Snowflake className="w-4 h-4 mr-2" />
+                              {emp.isActive === false ? 'Unfreeze Account' : 'Freeze Account'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTerminateDialog({ open: true, employeeId: emp._id });
+                              }}
+                            >
+                              <XCircle className="w-4 h-4 mr-2" />
+                              Terminate Employee
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -843,214 +746,34 @@ export default function EmployeesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, employeeId: null })}>
+      {/* Unterminate Confirmation Dialog */}
+      <Dialog open={unterminateDialog.open} onOpenChange={(open) => setUnterminateDialog({ open, employeeId: null })}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Employee</DialogTitle>
+            <DialogTitle>Unterminate Employee</DialogTitle>
             <DialogDescription>
-              <strong className="text-destructive">Warning:</strong> This action will permanently delete the employee and their user account from the system. This action cannot be undone. All associated data will be lost.
+              Are you sure you want to unterminate this employee? Their status will be set back to "active" and their user account will be reactivated.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, employeeId: null })}>
+            <Button variant="outline" onClick={() => setUnterminateDialog({ open: false, employeeId: null })}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isProcessing}>
+            <Button onClick={handleUnterminate} disabled={isProcessing}>
               {isProcessing ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Deleting...
+                  Unterminating...
                 </>
               ) : (
-                'Delete Permanently'
+                'Unterminate Employee'
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Employee Dialog */}
-      <Dialog open={editDialog.open} onOpenChange={(open) => {
-        setEditDialog({ open, employee: null });
-        if (!open) {
-          setEditFormData({
-            firstName: "",
-            lastName: "",
-            email: "",
-            phone: "",
-            department: "",
-            designation: "",
-            gender: "",
-            status: "active",
-            dateOfJoining: "",
-          });
-        }
-      }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Employee</DialogTitle>
-            <DialogDescription>
-              Update employee information. Changes will be saved immediately.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  First Name <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  placeholder="First name"
-                  value={editFormData.firstName}
-                  onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Last Name <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  placeholder="Last name"
-                  value={editFormData.lastName}
-                  onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Email <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  type="email"
-                  placeholder="email@example.com"
-                  value={editFormData.email}
-                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Phone <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  type="tel"
-                  placeholder="Phone number"
-                  value={editFormData.phone}
-                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Department <span className="text-destructive">*</span>
-                </label>
-                <Select
-                  value={editFormData.department}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, department: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Designation <span className="text-destructive">*</span>
-                </label>
-                <Input
-                  placeholder="Job title"
-                  value={editFormData.designation}
-                  onChange={(e) => setEditFormData({ ...editFormData, designation: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Gender</label>
-                <Select
-                  value={editFormData.gender}
-                  onValueChange={(value) => setEditFormData({ ...editFormData, gender: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-2 block">Status</label>
-                <Select
-                  value={editFormData.status}
-                  onValueChange={(value: any) => setEditFormData({ ...editFormData, status: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="on-leave">On Leave</SelectItem>
-                    <SelectItem value="terminated">Terminated</SelectItem>
-                    <SelectItem value="resigned">Resigned</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Date of Joining <span className="text-destructive">*</span>
-              </label>
-              <Input
-                type="date"
-                value={editFormData.dateOfJoining}
-                onChange={(e) => setEditFormData({ ...editFormData, dateOfJoining: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => {
-              setEditDialog({ open: false, employee: null });
-              setEditFormData({
-                firstName: "",
-                lastName: "",
-                email: "",
-                phone: "",
-                department: "",
-                designation: "",
-                gender: "",
-                status: "active",
-                dateOfJoining: "",
-              });
-            }}>
-              Cancel
-            </Button>
-            <Button onClick={handleEdit} disabled={isProcessing}>
-              {isProcessing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Update Employee'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Employee Detail Sheet */}
       <Sheet open={!!selectedEmployee} onOpenChange={() => setSelectedEmployee(null)}>
@@ -1136,12 +859,7 @@ export default function EmployeesPage() {
                 </div>
               )}
 
-              <div className="flex gap-3 pt-4">
-                <Button className="flex-1">Edit Employee</Button>
-                <Button variant="outline" className="flex-1">
-                  View Timeline
-                </Button>
-              </div>
+              {/* Actions removed to match "only terminate and freeze" requirement */}
             </div>
           )}
         </SheetContent>

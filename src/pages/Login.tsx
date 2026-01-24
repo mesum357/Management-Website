@@ -9,7 +9,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import mmhLogo from "@/assets/mmh-logo.png";
-import loginBg from "@/assets/login-bg.png";
+import captureBg from "@/assets/capture.png";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -99,24 +99,21 @@ const Login = () => {
       <div
         className="absolute inset-0 z-0 transition-opacity duration-1000"
         style={{
-          backgroundImage: `url(${loginBg})`,
+          backgroundImage: `url(${captureBg})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       />
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-primary/80 to-accent/70 z-0" />
-
       {/* Content */}
       <div className="relative z-10 w-full max-w-md p-6">
-        <div className="glass-card rounded-3xl p-8 shadow-xl animate-fade-up">
+        <div className="rounded-3xl p-8 animate-fade-up bg-transparent">
           <div className="flex flex-col items-center mb-8 text-center">
             <div className="w-20 h-20 rounded-2xl bg-white p-2 mb-4 shadow-lg flex items-center justify-center">
               <img src={mmhLogo} alt="MMH Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground">MMH Corporate</h1>
-            <p className="text-muted-foreground mt-2">Management Portal</p>
+            <h1 className="text-3xl font-bold text-white">MMH Corporate</h1>
+            <p className="text-white/80 mt-2">Management Portal</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
@@ -127,14 +124,14 @@ const Login = () => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-white">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/70" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="admin@mmh.com"
-                  className="pl-12 h-12 bg-white/70 border-gray-300"
+                  className="pl-12 h-12 bg-white/10 backdrop-blur-md border-white/20 text-white placeholder:text-white/50"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
@@ -143,14 +140,14 @@ const Login = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-white">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/70" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="pl-12 pr-12 h-12 bg-white/70 border-gray-300"
+                  className="pl-12 pr-12 h-12 bg-white/10 backdrop-blur-md border-white/20 text-white placeholder:text-white/50"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
@@ -158,14 +155,14 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 text-base bg-white text-black hover:bg-white/90" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -177,34 +174,9 @@ const Login = () => {
             </Button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="p-4 rounded-xl bg-gray-50/50 backdrop-blur-sm">
-              <p className="text-xs text-muted-foreground text-center mb-3 font-semibold">
-                TEST ACCOUNTS
-              </p>
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">Founder</p>
-                    <p className="text-muted-foreground">admin@mmh.com</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-bold text-foreground">CEO</p>
-                    <p className="text-muted-foreground">ceo@mmh.com</p>
-                  </div>
-                </div>
-                <div className="text-center text-xs">
-                  <p className="font-bold text-foreground">HR Portal</p>
-                  <p className="text-muted-foreground">hr@mmh.com</p>
-                </div>
-              </div>
-              <p className="text-center text-muted-foreground mt-3 text-[10px]">
-                Password: <span className="font-mono bg-white px-1 rounded">password123</span>
-              </p>
-            </div>
-          </div>
 
-          <div className="mt-6 text-center text-xs text-muted-foreground">
+
+          <div className="mt-6 text-center text-xs text-white/60">
             © 2026 MMH Corporate. All rights reserved.
           </div>
         </div>

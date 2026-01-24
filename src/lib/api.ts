@@ -109,6 +109,8 @@ export const employeeAPI = {
     api.delete(`/employees/${id}`),
   terminate: (id: string) =>
     api.put(`/employees/${id}/terminate`),
+  unterminate: (id: string) =>
+    api.put(`/employees/${id}/unterminate`),
   freeze: (id: string, isActive: boolean) =>
     api.put(`/employees/${id}/freeze`, { isActive }),
   getDirectory: () =>

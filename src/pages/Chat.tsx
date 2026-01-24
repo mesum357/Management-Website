@@ -97,6 +97,7 @@ const Chat = () => {
   const [messageRequests, setMessageRequests] = useState<any[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showMobileChat, setShowMobileChat] = useState(false);
 
   // Initialize socket connection
   useEffect(() => {
@@ -245,6 +246,7 @@ const Chat = () => {
         const chatWithMessages = messagesRes.data.data.chat;
         setSelectedChat(chatWithMessages);
         setMessages(chatWithMessages.messages?.filter((m: Message) => !m.isDeleted) || []);
+        setShowMobileChat(true);
       }
       fetchMessageRequests();
       fetchChats();
@@ -287,6 +289,7 @@ const Chat = () => {
 
       setSelectedChat(chatWithMessages);
       setMessages(chatWithMessages.messages?.filter((m: Message) => !m.isDeleted) || []);
+      setShowMobileChat(true);
 
       // Refresh chats list
       fetchChats();
@@ -308,6 +311,7 @@ const Chat = () => {
 
       setSelectedChat(chatWithMessages);
       setMessages(chatWithMessages.messages?.filter((m: Message) => !m.isDeleted) || []);
+      setShowMobileChat(true);
     } catch (err: any) {
       console.error('Error loading chat:', err);
       setError(err.response?.data?.message || 'Failed to load messages');
@@ -519,9 +523,12 @@ const Chat = () => {
   const otherUser = selectedChat ? getOtherParticipant(selectedChat) : null;
 
   return (
-    <div className="h-[calc(100vh-140px)] flex gap-6">
+    <div className="h-[calc(100vh-140px)] flex flex-col md:flex-row gap-4 md:gap-6 relative overflow-hidden">
       {/* Users/Chats List */}
-      <Card className="w-80 flex-shrink-0 flex flex-col overflow-hidden">
+      <Card className={cn(
+        "w-full md:w-80 flex-shrink-0 flex flex-col overflow-hidden",
+        showMobileChat && "hidden md:flex"
+      )}>
         <div className="p-4 border-b border-border">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -558,7 +565,7 @@ const Chat = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{requesterName}</p>
-                        <p className="text-xs text-muted-foreground truncate">Wants to message you</p>
+                        <p className="text-xs text-muted-foreground truncate italic">wants to message you</p>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
@@ -703,11 +710,22 @@ const Chat = () => {
 
       {/* Chat Area */}
       {selectedChat && otherUser ? (
-        <Card className="flex-1 flex flex-col overflow-hidden">
+        <Card className={cn(
+          "flex-1 flex flex-col overflow-hidden bg-card",
+          !showMobileChat && "hidden md:flex"
+        )}>
           {/* Chat Header */}
-          <div className="p-4 border-b border-border flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
+          <div className="p-3 md:p-4 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-2 md:gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden -ml-2 h-8 w-8"
+                onClick={() => setShowMobileChat(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+              <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                   <span className="text-sm font-medium text-primary">
                     {getAvatarInitials(otherUser.displayName)}
@@ -717,22 +735,22 @@ const Chat = () => {
                   <Circle className="absolute bottom-0 right-0 w-3 h-3 text-success fill-success bg-card rounded-full" />
                 )}
               </div>
-              <div>
-                <p className="font-medium text-foreground">{otherUser.displayName}</p>
-                <p className="text-caption">
+              <div className="min-w-0">
+                <p className="font-medium text-foreground truncate">{otherUser.displayName}</p>
+                <p className="text-caption truncate">
                   {onlineUsers.has(otherUser._id) ? "Online" : otherUser.email}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon">
-                <Phone className="w-5 h-5" />
+            <div className="flex items-center gap-1 md:gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+                <Phone className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
-              <Button variant="ghost" size="icon">
-                <Video className="w-5 h-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+                <Video className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="w-5 h-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+                <MoreVertical className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
             </div>
           </div>
