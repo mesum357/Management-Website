@@ -79,6 +79,18 @@ export default function HRDashboard() {
     fetchDashboardData();
   }, []);
 
+  // Real-time refresh listener
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchDashboardData();
+    };
+
+    window.addEventListener('refreshTickets', handleRefresh);
+    return () => {
+      window.removeEventListener('refreshTickets', handleRefresh);
+    };
+  }, []);
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);

@@ -23,6 +23,7 @@ import {
   Ticket,
   Settings as SettingsIcon,
 } from "lucide-react";
+import { messageRequestAPI, chatAPI } from "@/lib/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,6 +73,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [hasUnreadChat, setHasUnreadChat] = useState(false);
   const prevPathnameRef = useRef<string | null>(null);
 
   // Close sidebar when route changes on mobile (but not on initial mount)
@@ -84,6 +86,45 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     }
     prevPathnameRef.current = location.pathname;
   }, [location.pathname, onClose]);
+
+  // Check for unread messages and message requests
+  const checkUnread = async () => {
+    try {
+      if (!user) return;
+
+      // Check message requests (especially for Boss)
+      let pendingRequestsCount = 0;
+      if (user.role === 'boss' || user.role === 'admin') {
+        const reqRes = await messageRequestAPI.getAll();
+        pendingRequestsCount = reqRes.data.data.incoming?.length || 0;
+      }
+
+      // Check unread messages in chats
+      const chatRes = await chatAPI.getAll();
+      const unreadChatsCount = (chatRes.data.data.chats || []).reduce(
+        (acc: number, chat: any) => acc + (chat.unreadCount || 0),
+        0
+      );
+
+      setHasUnreadChat(pendingRequestsCount > 0 || unreadChatsCount > 0);
+    } catch (error) {
+      console.error('Error checking unread status:', error);
+    }
+  };
+
+  useEffect(() => {
+    checkUnread();
+
+    const handleRefresh = () => checkUnread();
+
+    window.addEventListener('refreshMessages', handleRefresh);
+    window.addEventListener('refreshMessageRequests', handleRefresh);
+
+    return () => {
+      window.removeEventListener('refreshMessages', handleRefresh);
+      window.removeEventListener('refreshMessageRequests', handleRefresh);
+    };
+  }, [user]);
 
   // Determine which portal to show based on current route
   const isOnBossRoute = location.pathname.startsWith('/boss');
@@ -164,7 +205,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       >
         <Icon className="w-5 h-5 flex-shrink-0" />
         {!isCollapsed && (
-          <span className="truncate">{item.label}</span>
+          <span className="truncate flex-1">{item.label}</span>
+        )}
+        {item.label === "Chat" && hasUnreadChat && (
+          <div className={cn(
+            "w-2 h-2 rounded-full bg-red-500",
+            isCollapsed && "absolute top-2 right-2"
+          )} />
         )}
       </NavLink>
     );

@@ -138,6 +138,7 @@ const Chat = () => {
 
       // Update chat list
       fetchChats();
+      window.dispatchEvent(new CustomEvent('refreshMessages'));
     };
 
     socket.on('newMessage', handleNewMessage);
@@ -146,6 +147,7 @@ const Chat = () => {
     const handleNewMessageRequest = (data: { requestId: string; from: any }) => {
       if (user?.role === 'boss') {
         fetchMessageRequests();
+        window.dispatchEvent(new CustomEvent('refreshMessageRequests'));
       }
     };
 
@@ -161,8 +163,15 @@ const Chat = () => {
       fetchMessageRequests();
     };
 
-    socket.on('messageRequestAccepted', handleMessageRequestAccepted);
-    socket.on('messageRequestRejected', handleMessageRequestRejected);
+    socket.on('messageRequestAccepted', (data: any) => {
+      handleMessageRequestAccepted(data);
+      window.dispatchEvent(new CustomEvent('refreshMessageRequests'));
+      window.dispatchEvent(new CustomEvent('refreshMessages'));
+    });
+    socket.on('messageRequestRejected', (data: any) => {
+      handleMessageRequestRejected(data);
+      window.dispatchEvent(new CustomEvent('refreshMessageRequests'));
+    });
 
     // Handle typing indicators
     socket.on('userTyping', (data: { userId: string; chatId: string; isTyping: boolean }) => {
@@ -250,6 +259,8 @@ const Chat = () => {
       }
       fetchMessageRequests();
       fetchChats();
+      window.dispatchEvent(new CustomEvent('refreshMessageRequests'));
+      window.dispatchEvent(new CustomEvent('refreshMessages'));
     } catch (err: any) {
       console.error('Error accepting request:', err);
       setError(err.response?.data?.message || 'Failed to accept request');
@@ -260,6 +271,7 @@ const Chat = () => {
     try {
       await messageRequestAPI.reject(requestId);
       fetchMessageRequests();
+      window.dispatchEvent(new CustomEvent('refreshMessageRequests'));
     } catch (err: any) {
       console.error('Error rejecting request:', err);
       setError(err.response?.data?.message || 'Failed to reject request');
@@ -312,6 +324,7 @@ const Chat = () => {
       setSelectedChat(chatWithMessages);
       setMessages(chatWithMessages.messages?.filter((m: Message) => !m.isDeleted) || []);
       setShowMobileChat(true);
+      window.dispatchEvent(new CustomEvent('refreshMessages'));
     } catch (err: any) {
       console.error('Error loading chat:', err);
       setError(err.response?.data?.message || 'Failed to load messages');

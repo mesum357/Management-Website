@@ -96,6 +96,19 @@ export default function TicketsPage() {
     fetchStats();
   }, [statusFilter, categoryFilter, priorityFilter]);
 
+  // Real-time refresh listener
+  useEffect(() => {
+    const handleRefresh = () => {
+      fetchData();
+      fetchStats();
+    };
+
+    window.addEventListener('refreshTickets', handleRefresh);
+    return () => {
+      window.removeEventListener('refreshTickets', handleRefresh);
+    };
+  }, []);
+
   const fetchData = async () => {
     try {
       setLoading(true);

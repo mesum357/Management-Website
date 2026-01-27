@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { HRRoute, BossRoute } from "@/components/auth/ProtectedRoute";
+import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 
 // Auth Pages
 import Login from "@/pages/Login";
@@ -65,10 +66,10 @@ const App = () => {
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
-      
+
       {/* Root redirect */}
       <Route path="/" element={<RootRedirect />} />
-      
+
       {/* Protected Routes with Layout */}
       <Route element={<MainLayout />}>
         {/* HR Portal Routes - Only HR and Admin */}
@@ -138,7 +139,7 @@ const App = () => {
           <BossRoute><Settings /></BossRoute>
         } />
       </Route>
-      
+
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
@@ -151,7 +152,9 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <AppRoutes />
+            <NotificationProvider>
+              <AppRoutes />
+            </NotificationProvider>
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
