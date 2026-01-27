@@ -15,6 +15,8 @@ import {
   Save,
   Edit,
   Trash2,
+  FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
@@ -66,6 +68,7 @@ interface LeaveRequest {
   reviewedBy?: string;
   reviewedOn?: string;
   createdAt: string;
+  attachments?: Array<{ name: string; url: string }>;
 }
 
 interface Department {
@@ -571,6 +574,21 @@ export default function LeavesPage() {
                       </td>
                       <td>
                         <StatusBadge status={request.status} />
+                        {request.attachments && request.attachments.length > 0 && (
+                          <div className="flex gap-1 mt-1">
+                            {request.attachments.map((att, idx) => (
+                              <a
+                                key={idx}
+                                href={att.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={att.name}
+                              >
+                                <ImageIcon className="w-4 h-4 text-primary hover:text-primary-dark" />
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td>
                         {request.status === "pending" && (
@@ -643,9 +661,26 @@ export default function LeavesPage() {
                             </span>
                           </div>
                           {request.reason && (
-                            <p className="mt-2 text-sm text-muted-foreground italic">
-                              "{request.reason}"
-                            </p>
+                            <div className="mt-2 text-sm text-foreground bg-secondary/20 p-2 rounded-md border border-border">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Reason</p>
+                              {request.reason}
+                            </div>
+                          )}
+                          {request.attachments && request.attachments.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {request.attachments.map((att, idx) => (
+                                <a
+                                  key={idx}
+                                  href={att.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-xs bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded-md transition-colors"
+                                >
+                                  <FileText className="w-3 h-3" />
+                                  {att.name}
+                                </a>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>
