@@ -69,6 +69,7 @@ interface LeaveRequest {
   reviewedOn?: string;
   createdAt: string;
   attachments?: Array<{ name: string; url: string }>;
+  isRead?: boolean;
 }
 
 interface Department {
@@ -124,6 +125,32 @@ export default function LeavesPage() {
     fetchData();
     fetchLeavePolicies();
   }, [statusFilter, typeFilter]);
+
+  useEffect(() => {
+    const handleRefresh = () => fetchData();
+    window.addEventListener('refreshLeaves', handleRefresh);
+    return () => window.removeEventListener('refreshLeaves', handleRefresh);
+  }, []);
+
+  // Mark pending leaves as read when the list is fetched or tab changes
+  useEffect(() => {
+    const markAllAsRead = async () => {
+      const unreadPending = pendingRequests.filter(r => !r.isRead);
+      if (unreadPending.length > 0) {
+        try {
+          await Promise.all(unreadPending.map(r => leaveAPI.markAsRead(r._id)));
+          // Refresh count in sidebar
+          window.dispatchEvent(new CustomEvent('refreshLeaveCount'));
+        } catch (err) {
+          console.error('Error marking leaves as read:', err);
+        }
+      }
+    };
+
+    if (pendingRequests.length > 0) {
+      markAllAsRead();
+    }
+  }, [pendingRequests]);
 
   const fetchData = async () => {
     try {
@@ -558,6 +585,9 @@ export default function LeavesPage() {
                         <div>
                           <p className="font-medium">
                             {request.employee.firstName} {request.employee.lastName}
+                            {request.status === 'pending' && !request.isRead && (
+                              <span className="ml-2 w-2 h-2 rounded-full bg-blue-500 inline-block shadow-pulse-blue" title="Unread" />
+                            )}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {getEmployeeDepartment(request.employee)}
@@ -639,10 +669,13 @@ export default function LeavesPage() {
                   <div key={request._id} className="p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center relative">
                           <span className="font-medium text-primary">
                             {request.employee.firstName[0]}{request.employee.lastName[0]}
                           </span>
+                          {!request.isRead && (
+                            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-blue-500 border-2 border-background animate-pulse" />
+                          )}
                         </div>
                         <div>
                           <p className="font-medium">

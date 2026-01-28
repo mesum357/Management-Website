@@ -20,6 +20,7 @@ import {
   AlertCircle,
   UserPlus,
   X,
+  ArrowLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { chatAPI, messageRequestAPI, resolveSocketUrl } from "@/lib/api";
@@ -733,10 +734,10 @@ const Chat = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden -ml-2 h-8 w-8"
+                className="md:hidden -ml-2 h-8 w-8 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowMobileChat(false)}
               >
-                <X className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="relative flex-shrink-0">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">

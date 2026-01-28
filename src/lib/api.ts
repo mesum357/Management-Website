@@ -168,6 +168,10 @@ export const leaveAPI = {
     api.put(`/leaves/policy/${id}`, data),
   deletePolicy: (id: string) =>
     api.delete(`/leaves/policy/${id}`),
+  getUnreadCount: () =>
+    api.get('/leaves/unread-count'),
+  markAsRead: (id: string) =>
+    api.put(`/leaves/${id}/mark-read`),
 };
 
 // Notice API

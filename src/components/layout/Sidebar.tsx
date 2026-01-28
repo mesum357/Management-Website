@@ -23,7 +23,7 @@ import {
   Ticket,
   Settings as SettingsIcon,
 } from "lucide-react";
-import { messageRequestAPI, chatAPI } from "@/lib/api";
+import { messageRequestAPI, chatAPI, leaveAPI } from "@/lib/api";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,7 +55,8 @@ const hrNavItems: NavItem[] = [
 const bossNavItems: NavItem[] = [
   { label: "Dashboard", path: "/boss", icon: LayoutDashboard },
   { label: "Employees", path: "/boss/employees", icon: Users },
-  { label: "Meetings", path: "/boss/meetings", icon: Calendar },
+  { label: "Leave Management", path: "/boss/leaves", icon: Calendar },
+  { label: "Meetings", path: "/boss/meetings", icon: Video },
   { label: "Tasks", path: "/boss/tasks", icon: Briefcase },
   { label: "Notices", path: "/boss/notices", icon: Megaphone },
   { label: "Chat", path: "/boss/chat", icon: MessageCircle },
@@ -74,6 +75,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [hasUnreadChat, setHasUnreadChat] = useState(false);
+  const [unreadLeaveCount, setUnreadLeaveCount] = useState(0);
   const prevPathnameRef = useRef<string | null>(null);
 
   // Close sidebar when route changes on mobile (but not on initial mount)
@@ -107,6 +109,23 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       );
 
       setHasUnreadChat(pendingRequestsCount > 0 || unreadChatsCount > 0);
+
+      // Check unread leave requests
+      if (user.role === 'hr' || user.role === 'admin' || user.role === 'boss') {
+        const leaveRes = await leaveAPI.getAll({ status: 'pending' });
+        // Since we don't have a direct unread flag filter on the getAll yet, 
+        // we'll count ones that are pending (or we can use the new unread-count route)
+        // Let's use the new endpoint if it exists
+        try {
+          // @ts-ignore - new method
+          const unreadRes = await leaveAPI.getUnreadCount();
+          setUnreadLeaveCount(unreadRes.data.data.unreadCount || 0);
+        } catch (e) {
+          // Fallback to counting pending
+          const pending = (leaveRes.data.data.leaves || []).filter((l: any) => l.status === 'pending').length;
+          setUnreadLeaveCount(pending);
+        }
+      }
     } catch (error) {
       console.error('Error checking unread status:', error);
     }
@@ -119,10 +138,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
     window.addEventListener('refreshMessages', handleRefresh);
     window.addEventListener('refreshMessageRequests', handleRefresh);
+    window.addEventListener('refreshLeaveCount', handleRefresh);
 
     return () => {
       window.removeEventListener('refreshMessages', handleRefresh);
       window.removeEventListener('refreshMessageRequests', handleRefresh);
+      window.removeEventListener('refreshLeaveCount', handleRefresh);
     };
   }, [user]);
 
@@ -212,6 +233,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             "w-2 h-2 rounded-full bg-red-500",
             isCollapsed && "absolute top-2 right-2"
           )} />
+        )}
+        {item.label === "Leave Management" && unreadLeaveCount > 0 && (
+          <div className={cn(
+            "min-w-[1.25rem] h-5 px-1 rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center shadow-lg",
+            isCollapsed && "absolute top-2 right-2"
+          )}>
+            {unreadLeaveCount}
+          </div>
         )}
       </NavLink>
     );

@@ -3,7 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { Ticket, MessageSquare, Bell, Info, AlertTriangle } from 'lucide-react';
+import { Ticket, MessageSquare, Bell, Info, AlertTriangle, Calendar } from 'lucide-react';
 
 interface TicketNotification {
     id: string;
@@ -11,6 +11,18 @@ interface TicketNotification {
     subject: string;
     category: string;
     priority: string;
+    employee: {
+        firstName: string;
+        lastName: string;
+    };
+}
+
+interface LeaveNotification {
+    _id: string;
+    leaveType: string;
+    startDate: string;
+    endDate: string;
+    totalDays: number;
     employee: {
         firstName: string;
         lastName: string;
@@ -157,6 +169,35 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         ), { duration: 7000, position: 'top-right' });
     }, [navigate, user]);
 
+    const handleNewLeaveRequest = useCallback((data: LeaveNotification) => {
+        const isLeavePage = window.location.pathname.includes('/leaves');
+
+        playNotificationSound();
+        window.dispatchEvent(new CustomEvent('refreshLeaves', { detail: data }));
+        window.dispatchEvent(new CustomEvent('refreshLeaveCount'));
+
+        toast.custom((t) => (
+            <div
+                onClick={() => {
+                    toast.dismiss(t);
+                    const path = user?.role === 'hr' ? '/hr/leaves' : '/boss/leaves';
+                    navigate(path);
+                }}
+                className="flex items-start gap-3 p-4 rounded-lg border-l-4 border-warning bg-card shadow-md max-w-sm cursor-pointer hover:shadow-lg transition-all"
+            >
+                <div className="p-2 rounded-full bg-warning/10 text-warning">
+                    <Calendar className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-foreground text-sm truncate">New Leave Request</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {data.employee.firstName} {data.employee.lastName} requested {data.totalDays} day(s) of {data.leaveType} leave.
+                    </p>
+                </div>
+            </div>
+        ), { duration: 8000, position: 'top-right' });
+    }, [navigate, user]);
+
     useEffect(() => {
         if (!isAuthenticated || !user) {
             if (socketRef.current) {
@@ -182,15 +223,17 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         socket.on('newTicket', handleNewTicket);
         socket.on('newMessage', handleNewMessage);
         socket.on('newMessageRequest', handleNewMessageRequest);
+        socket.on('newLeaveRequest', handleNewLeaveRequest);
 
         return () => {
             socket.off('newTicket', handleNewTicket);
             socket.off('newMessage', handleNewMessage);
             socket.off('newMessageRequest', handleNewMessageRequest);
+            socket.off('newLeaveRequest', handleNewLeaveRequest);
             socket.disconnect();
             socketRef.current = null;
         };
-    }, [isAuthenticated, user, handleNewTicket, handleNewMessage, handleNewMessageRequest]);
+    }, [isAuthenticated, user, handleNewTicket, handleNewMessage, handleNewMessageRequest, handleNewLeaveRequest]);
 
     return <>{children}</>;
 };
