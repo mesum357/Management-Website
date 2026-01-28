@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatCard } from "@/components/shared/StatCard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,28 +27,33 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { analyticsAPI } from "@/lib/api";
+import { analyticsAPI, reportAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  
+
   // Determine base path (hr or boss)
   const basePath = location.pathname.startsWith('/boss') ? '/boss' : '/hr';
   const [loading, setLoading] = useState(true);
   const [headsetPeriod, setHeadsetPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
   const [salesPeriod, setSalesPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
-  
+
   // Charts data
   const [headsetData, setHeadsetData] = useState<any[]>([]);
   const [salesData, setSalesData] = useState<any[]>([]);
-  
+  const [recentReports, setRecentReports] = useState<any[]>([]);
+
   // Stat card values
   const [headsetCount, setHeadsetCount] = useState<number>(0);
   const [headsetSubtitle, setHeadsetSubtitle] = useState<string>("");
   const [salesTotal, setSalesTotal] = useState<number>(0);
+  const [salesCountTotal, setSalesCountTotal] = useState<number>(0);
   const [salesSubtitle, setSalesSubtitle] = useState<string>("");
 
   useEffect(() => {
@@ -80,7 +86,7 @@ export default function AnalyticsPage() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch headset stats
       const headsetRange = getDateRange(headsetPeriod);
       const headsetStatsRes = await analyticsAPI.getReportStats({
@@ -101,7 +107,7 @@ export default function AnalyticsPage() {
         // Calculate total headset count for the period
         const totalHeadset = headsetStats.headsetStats.reduce((sum: number, stat: any) => sum + (stat.headsetCount || 0), 0);
         setHeadsetCount(totalHeadset);
-        
+
         // Set subtitle based on period
         if (headsetPeriod === "daily") {
           setHeadsetSubtitle("Today's headset count");
@@ -119,8 +125,8 @@ export default function AnalyticsPage() {
             date: new Date(stat.date || stat._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             total: stat.totalEmployees || 0,
             withHeadset: stat.headsetCount || 0,
-            percentage: stat.totalEmployees > 0 
-              ? Math.round((stat.headsetCount / stat.totalEmployees) * 100) 
+            percentage: stat.totalEmployees > 0
+              ? Math.round((stat.headsetCount / stat.totalEmployees) * 100)
               : 0
           }));
         setHeadsetData(headsetChartData);
@@ -135,8 +141,10 @@ export default function AnalyticsPage() {
       if (salesStats.salesStats && salesStats.salesStats.length > 0) {
         // Calculate total sales for the period
         const totalSales = salesStats.salesStats.reduce((sum: number, stat: any) => sum + (stat.totalSales || 0), 0);
+        const totalSalesCount = salesStats.salesStats.reduce((sum: number, stat: any) => sum + (stat.totalSalesCount || 0), 0);
         setSalesTotal(totalSales);
-        
+        setSalesCountTotal(totalSalesCount);
+
         // Set subtitle based on period
         if (salesPeriod === "daily") {
           setSalesSubtitle("Today's sales");
@@ -159,8 +167,20 @@ export default function AnalyticsPage() {
         setSalesData(salesChartData);
       } else {
         setSalesTotal(0);
+        setSalesCountTotal(0);
         setSalesSubtitle(salesPeriod === "daily" ? "Today's sales" : salesPeriod === "weekly" ? "Weekly sales" : "Monthly sales");
         setSalesData([]);
+      }
+
+      // Fetch all reports for the period to show recent activity
+      const allReportsRes = await reportAPI.getAll({
+        startDate: headsetRange.startDate.toISOString(), // Use headset range as it's the same or similar
+        endDate: headsetRange.endDate.toISOString(),
+        limit: 10
+      }).catch(() => ({ data: { data: { reports: [] } } }));
+
+      if (allReportsRes.data.success) {
+        setRecentReports(allReportsRes.data.data.reports || []);
       }
 
     } catch (error: any) {
@@ -252,6 +272,29 @@ export default function AnalyticsPage() {
                 <Activity className="w-4 h-4 mr-1" />
                 All Activity
               </Button>
+            </div>
+          }
+        />
+
+        {/* Sales Count Card */}
+        <StatCard
+          title="Sales Count"
+          value={salesCountTotal.toString()}
+          subtitle={salesSubtitle.replace("sales", "sales count")}
+          icon={Activity}
+          variant="primary"
+          actions={
+            <div className="flex items-center gap-2">
+              <Select value={salesPeriod} onValueChange={(value: "daily" | "weekly" | "monthly") => setSalesPeriod(value)}>
+                <SelectTrigger className="w-[100px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           }
         />
@@ -366,6 +409,71 @@ export default function AnalyticsPage() {
           )}
         </div>
       </div>
+
+      {/* Recent Activity Table */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-primary" />
+            Recent Reports Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead className="text-center">Headset</TableHead>
+                  <TableHead className="text-center">Sales ($)</TableHead>
+                  <TableHead className="text-center">Sales Count</TableHead>
+                  <TableHead>Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentReports.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No recent activity found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  recentReports.map((report) => (
+                    <TableRow key={report._id}>
+                      <TableCell className="whitespace-nowrap">
+                        {format(new Date(report.date), "MMM dd, yyyy")}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {report.employee.firstName} {report.employee.lastName}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline">{report.headset}</Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-success">
+                        ${report.sales.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-center font-bold text-blue-600">
+                        {report.salesCount || 0}
+                      </TableCell>
+                      <TableCell className="max-w-[300px]">
+                        <p className="text-sm text-muted-foreground truncate" title={report.salesDetails}>
+                          {report.salesDetails || "N/A"}
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <div className="mt-4 text-center">
+            <Button variant="ghost" size="sm" onClick={() => navigate(`${basePath}/reports`)}>
+              View All Activity Reports
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

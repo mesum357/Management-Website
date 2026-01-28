@@ -8,6 +8,7 @@ import {
   User,
   Building2,
   Eye,
+  Activity,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,8 @@ interface Report {
   date: string;
   headset: number;
   sales: number;
+  salesCount?: number;
+  salesDetails?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -97,7 +100,7 @@ export default function ReportActivityPage() {
     try {
       setLoading(true);
       const { startDate, endDate } = getDateRange(filterPeriod);
-      
+
       const response = await reportAPI.getAll({
         startDate: startDate.toISOString(),
         endDate: endDate.toISOString(),
@@ -121,12 +124,12 @@ export default function ReportActivityPage() {
 
   const filteredReports = reports.filter((report) => {
     if (!searchQuery.trim()) return true;
-    
+
     const query = searchQuery.toLowerCase();
     const employeeName = `${report.employee.firstName} ${report.employee.lastName}`.toLowerCase();
     const employeeId = report.employee.employeeId?.toLowerCase() || "";
     const department = report.employee.department?.name?.toLowerCase() || "";
-    
+
     return (
       employeeName.includes(query) ||
       employeeId.includes(query) ||
@@ -214,66 +217,72 @@ export default function ReportActivityPage() {
             <div className="overflow-x-auto -mx-4 sm:mx-0">
               <div className="inline-block min-w-full align-middle px-4 sm:px-0">
                 <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Employee ID</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead className="text-center">
-                      <Headphones className="w-4 h-4 inline mr-1" />
-                      Headset
-                    </TableHead>
-                    <TableHead className="text-center">
-                      <DollarSign className="w-4 h-4 inline mr-1" />
-                      Sales
-                    </TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredReports.map((report) => (
-                    <TableRow key={report._id}>
-                      <TableCell>
-                        {format(new Date(report.date), "MMM dd, yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="w-4 h-4 text-muted-foreground" />
-                          <span>
-                            {report.employee.firstName} {report.employee.lastName}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {report.employee.employeeId}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-muted-foreground" />
-                          <span>{report.employee.department?.name || "N/A"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center font-semibold">
-                        {report.headset}
-                      </TableCell>
-                      <TableCell className="text-center font-semibold text-success">
-                        ${report.sales.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewReport(report)}
-                        >
-                          <Eye className="w-4 h-4 mr-1" />
-                          View
-                        </Button>
-                      </TableCell>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Employee ID</TableHead>
+                      <TableHead>Department</TableHead>
+                      <TableHead className="text-center">
+                        <Headphones className="w-4 h-4 inline mr-1" />
+                        Headset
+                      </TableHead>
+                      <TableHead className="text-center">
+                        <DollarSign className="w-4 h-4 inline mr-1" />
+                        Sales
+                      </TableHead>
+                      <TableHead className="text-center">
+                        Sales Count
+                      </TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredReports.map((report) => (
+                      <TableRow key={report._id}>
+                        <TableCell>
+                          {format(new Date(report.date), "MMM dd, yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              {report.employee.firstName} {report.employee.lastName}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {report.employee.employeeId}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
+                            <span>{report.employee.department?.name || "N/A"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center font-semibold">
+                          {report.headset}
+                        </TableCell>
+                        <TableCell className="text-center font-semibold text-success">
+                          ${report.sales.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-center font-semibold text-blue-600">
+                          {report.salesCount || 0}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewReport(report)}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </div>
           )}
@@ -367,13 +376,31 @@ export default function ReportActivityPage() {
                         <DollarSign className="w-6 h-6 text-success" />
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Sales</p>
+                        <p className="text-xs text-muted-foreground">Sales ($)</p>
                         <p className="text-2xl font-bold text-success">
                           ${selectedReport.sales.toLocaleString()}
                         </p>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3 p-4 bg-blue-500/5 rounded-lg">
+                      <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <Activity className="w-6 h-6 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Sales Count</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {selectedReport.salesCount || 0}
+                        </p>
+                      </div>
+                    </div>
                   </div>
+
+                  {selectedReport.salesDetails && (
+                    <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-border">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Sales Details</p>
+                      <p className="text-sm whitespace-pre-wrap">{selectedReport.salesDetails}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
