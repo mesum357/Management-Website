@@ -205,6 +205,135 @@ export default function AttendancePage() {
       return false;
     });
 
+  // Render table content helper
+  const renderTableContent = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    if (filteredRecords.length === 0) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>No attendance records found for the selected filters</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full">
+        {/* Table View (Desktop) */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Department</th>
+                <th>Date</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Break Time</th>
+                <th>Work Hours</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRecords.map((record) => {
+                const config = statusConfig[record.status] || statusConfig.present;
+                const Icon = config.icon;
+                return (
+                  <tr key={record._id}>
+                    <td>
+                      <div>
+                        <p className="font-medium">
+                          {record.employee.firstName} {record.employee.lastName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {record.employee.employeeId}
+                        </p>
+                      </div>
+                    </td>
+                    <td>{getEmployeeDepartment(record.employee)}</td>
+                    <td>{formatDate(record.date)}</td>
+                    <td>
+                      <span className={record.status === "late" ? "text-warning font-medium" : ""}>
+                        {formatTime(record.checkIn?.time)}
+                      </span>
+                    </td>
+                    <td>{formatTime(record.checkOut?.time)}</td>
+                    <td>{calculateBreakTime(record)}</td>
+                    <td>{calculateWorkHours(record)}</td>
+                    <td>
+                      <span className={cn("badge-status flex items-center gap-1.5 w-fit", config.color)}>
+                        <Icon className="w-3.5 h-3.5" />
+                        {config.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Card View (Mobile) */}
+        <div className="grid grid-cols-1 gap-4 md:hidden p-4">
+          {filteredRecords.map((record) => {
+            const config = statusConfig[record.status] || statusConfig.present;
+            const Icon = config.icon;
+            return (
+              <div key={record._id} className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-3">
+                <div className="flex items-start justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground truncate">
+                      {record.employee.firstName} {record.employee.lastName}
+                    </p>
+                    <p className="text-xs text-muted-foreground pb-1">ID: {record.employee.employeeId}</p>
+                    <p className="text-xs font-medium text-primary/80">{getEmployeeDepartment(record.employee)}</p>
+                  </div>
+                  <span className={cn("badge-status flex items-center gap-1.5 shrink-0 ml-2", config.color)}>
+                    <Icon className="w-3.5 h-3.5" />
+                    {config.label}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-y-3 gap-x-2 pt-2 border-t border-border/50">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Date</p>
+                    <p className="text-sm font-medium">{formatDate(record.date)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Work Hours</p>
+                    <p className="text-sm font-medium">{calculateWorkHours(record)}</p>
+                  </div>
+                  <div className="bg-muted/30 p-2 rounded-lg">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Check In</p>
+                    <p className={cn("text-sm font-medium", record.status === "late" && "text-warning")}>
+                      {formatTime(record.checkIn?.time)}
+                    </p>
+                  </div>
+                  <div className="bg-muted/30 p-2 rounded-lg">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Check Out</p>
+                    <p className="text-sm font-medium">{formatTime(record.checkOut?.time)}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Break duration: <span className="text-foreground/80 font-medium">{calculateBreakTime(record)}</span></span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // Calculate stats from records
   const presentCount = filteredRecords.filter(r => r.status === 'present').length;
   const lateCount = filteredRecords.filter(r => r.status === 'late').length;
@@ -268,18 +397,19 @@ export default function AttendancePage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in max-w-full overflow-x-hidden">
       <PageHeader
         title="Attendance Management"
         description="Track and manage team attendance"
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="icon" onClick={fetchData} disabled={loading} className="shrink-0">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
-            <Button variant="outline" className="gap-2" onClick={handleExportReport} disabled={loading || filteredRecords.length === 0}>
-              <Download className="w-4 h-4" />
-              Export Report
+            <Button variant="outline" className="gap-2 flex-1 sm:flex-initial justify-center" onClick={handleExportReport} disabled={loading || filteredRecords.length === 0}>
+              <Download className="w-4 h-4 shrink-0" />
+              <span className="hidden xs:inline sm:inline">Export Report</span>
+              <span className="xs:hidden inline">Export</span>
             </Button>
           </div>
         }
@@ -293,7 +423,7 @@ export default function AttendancePage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 w-full min-w-0 pr-0.5">
         <StatCard
           title="Present Today"
           value={String(presentCount)}
@@ -324,20 +454,24 @@ export default function AttendancePage() {
         />
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Team Overview</TabsTrigger>
-          <TabsTrigger value="corrections">Pending Corrections</TabsTrigger>
-          <TabsTrigger value="irregularities">Irregularities</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="overview" className="space-y-6 w-full min-w-0">
+        <div className="w-full overflow-x-auto pb-1 scrollbar-none">
+          <TabsList className="justify-start sm:justify-center w-fit min-w-full">
+            <TabsTrigger value="overview">Team Overview</TabsTrigger>
+            <TabsTrigger value="corrections">Pending Corrections</TabsTrigger>
+            <TabsTrigger value="irregularities">Irregularities</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview">
-          <div className="bg-card rounded-xl border border-border p-4 mb-4">
-            <div className="flex flex-wrap items-center gap-4">
+          <div className="bg-card rounded-xl border border-border p-3 sm:p-4 mb-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <Select value={selectedDate} onValueChange={setSelectedDate}>
-                <SelectTrigger className="w-[180px]">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  <SelectValue />
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <SelectValue />
+                  </div>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="today">Today</SelectItem>
@@ -347,7 +481,7 @@ export default function AttendancePage() {
                 </SelectContent>
               </Select>
               <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
                 <SelectContent>
@@ -358,7 +492,7 @@ export default function AttendancePage() {
                 </SelectContent>
               </Select>
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -372,67 +506,9 @@ export default function AttendancePage() {
           </div>
 
           <div className="bg-card rounded-xl border border-border overflow-hidden">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : filteredRecords.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No attendance records found for the selected filters</p>
-              </div>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Department</th>
-                    <th>Date</th>
-                    <th>Check In</th>
-                    <th>Check Out</th>
-                    <th>Break Time</th>
-                    <th>Work Hours</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRecords.map((record) => {
-                    const config = statusConfig[record.status] || statusConfig.present;
-                    const Icon = config.icon;
-                    return (
-                      <tr key={record._id}>
-                        <td>
-                          <div>
-                            <p className="font-medium">
-                              {record.employee.firstName} {record.employee.lastName}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {record.employee.employeeId}
-                            </p>
-                          </div>
-                        </td>
-                        <td>{getEmployeeDepartment(record.employee)}</td>
-                        <td>{formatDate(record.date)}</td>
-                        <td>
-                          <span className={record.status === "late" ? "text-warning font-medium" : ""}>
-                            {formatTime(record.checkIn?.time)}
-                          </span>
-                        </td>
-                        <td>{formatTime(record.checkOut?.time)}</td>
-                        <td>{calculateBreakTime(record)}</td>
-                        <td>{calculateWorkHours(record)}</td>
-                        <td>
-                          <span className={cn("badge-status flex items-center gap-1.5 w-fit", config.color)}>
-                            <Icon className="w-3.5 h-3.5" />
-                            {config.label}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+            <div className="table-container">
+              {renderTableContent()}
+            </div>
           </div>
         </TabsContent>
 

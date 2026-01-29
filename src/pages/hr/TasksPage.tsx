@@ -296,7 +296,7 @@ export default function HRTasksPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Pending"
           value={pendingTasks.length.toString()}
@@ -380,7 +380,7 @@ export default function HRTasksPage() {
                   overdue && "border-destructive/50"
                 )}
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1">
                     <div className={cn("p-2 rounded-lg", priority.color)}>
                       <PriorityIcon className="w-4 h-4" />

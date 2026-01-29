@@ -311,7 +311,7 @@ export default function LeavesPage() {
         description: "Leave policy saved successfully"
       });
       setEditingPolicy(null);
-      setPolicyForm({ leaveType: '', monthlyLimit: 0, description: '' });
+      setPolicyForm({ leaveType: '', yearlyLimit: 0, description: '' });
       fetchLeavePolicies();
     } catch (err: any) {
       console.error('Error saving leave policy:', err);
@@ -350,7 +350,7 @@ export default function LeavesPage() {
         description: "Leave policy updated successfully"
       });
       setEditingPolicy(null);
-      setPolicyForm({ leaveType: '', monthlyLimit: 0, description: '' });
+      setPolicyForm({ leaveType: '', yearlyLimit: 0, description: '' });
       fetchLeavePolicies();
     } catch (err: any) {
       console.error('Error updating leave policy:', err);
@@ -393,6 +393,231 @@ export default function LeavesPage() {
     return type.charAt(0).toUpperCase() + type.slice(1) + ' Leave';
   };
 
+  // Render All Requests helper
+  const renderAllRequests = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    if (filteredRequests.length === 0) {
+      return (
+        <div className="text-center py-12 text-muted-foreground">
+          <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+          <p>No leave requests found</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="w-full">
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th className="w-12">
+                  <input
+                    type="checkbox"
+                    className="rounded border-border"
+                    checked={selectedRequests.length === pendingRequests.length && pendingRequests.length > 0}
+                    onChange={() =>
+                      setSelectedRequests(
+                        selectedRequests.length === pendingRequests.length
+                          ? []
+                          : pendingRequests.map((r) => r._id)
+                      )
+                    }
+                  />
+                </th>
+                <th>Employee</th>
+                <th>Type</th>
+                <th>Duration</th>
+                <th>Days</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRequests.map((request) => (
+                <tr key={request._id}>
+                  <td>
+                    {request.status === "pending" && (
+                      <input
+                        type="checkbox"
+                        className="rounded border-border"
+                        checked={selectedRequests.includes(request._id)}
+                        onChange={() => toggleSelect(request._id)}
+                      />
+                    )}
+                  </td>
+                  <td>
+                    <div>
+                      <p className="font-medium">
+                        {request.employee.firstName} {request.employee.lastName}
+                        {request.status === 'pending' && !request.isRead && (
+                          <span className="ml-2 w-2 h-2 rounded-full bg-blue-500 inline-block shadow-pulse-blue" title="Unread" />
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {getEmployeeDepartment(request.employee)}
+                      </p>
+                    </div>
+                  </td>
+                  <td>{formatLeaveType(request.leaveType)}</td>
+                  <td>
+                    {formatDate(request.startDate)} - {formatDate(request.endDate)}
+                  </td>
+                  <td>{request.totalDays}</td>
+                  <td className="max-w-[200px] truncate text-muted-foreground">
+                    {request.reason || '-'}
+                  </td>
+                  <td>
+                    <StatusBadge status={request.status} />
+                    {request.attachments && request.attachments.length > 0 && (
+                      <div className="flex gap-1 mt-1">
+                        {request.attachments.map((att, idx) => (
+                          <a
+                            key={idx}
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={att.name}
+                          >
+                            <ImageIcon className="w-4 h-4 text-primary hover:text-primary-dark" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    {request.status === "pending" && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-destructive hover:text-destructive"
+                          onClick={() => openRejectDialog(request._id)}
+                          disabled={actionLoading}
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-success hover:text-success"
+                          onClick={() => handleApprove(request._id)}
+                          disabled={actionLoading}
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="grid grid-cols-1 gap-4 md:hidden p-4">
+          {filteredRequests.map((request) => {
+            return (
+              <div key={request._id} className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <p className="font-semibold text-foreground">
+                        {request.employee.firstName} {request.employee.lastName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {getEmployeeDepartment(request.employee)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <StatusBadge status={request.status} />
+                    {!request.isRead && request.status === 'pending' && (
+                      <span className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">New</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm bg-muted/30 p-3 rounded-lg">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground uppercase font-bold">Type</p>
+                    <p className="font-medium text-foreground">{formatLeaveType(request.leaveType)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground uppercase font-bold">Duration</p>
+                    <p className="font-medium text-foreground">{request.totalDays} Day{request.totalDays > 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="col-span-2 space-y-1 border-t border-border pt-2">
+                    <p className="text-xs text-muted-foreground uppercase font-bold">Dates</p>
+                    <p className="font-medium text-foreground italic">
+                      {new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+
+                {request.reason && (
+                  <div className="space-y-1 border-l-2 border-primary/20 pl-3">
+                    <p className="text-xs text-muted-foreground font-bold uppercase">Reason</p>
+                    <p className="text-sm text-foreground italic leading-relaxed">{request.reason}</p>
+                  </div>
+                )}
+
+                {request.attachments && request.attachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {request.attachments.map((att, idx) => (
+                      <a
+                        key={idx}
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs bg-primary/10 text-primary px-3 py-1.5 rounded-full hover:bg-primary/20 transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        <span className="truncate max-w-[120px]">{att.name}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {request.status === "pending" && (
+                  <div className="flex items-center gap-3 pt-2">
+                    <Button
+                      className="flex-1 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-white border-none"
+                      variant="outline"
+                      onClick={() => openRejectDialog(request._id)}
+                      disabled={actionLoading}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Reject
+                    </Button>
+                    <Button
+                      className="flex-1 rounded-xl bg-success text-white hover:bg-success/90 shadow-lg shadow-success/20"
+                      onClick={() => handleApprove(request._id)}
+                      disabled={actionLoading}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Approve
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   // Filter by department on client side
   const filteredRequests = departmentFilter === "all"
     ? leaveRequests
@@ -429,28 +654,28 @@ export default function LeavesPage() {
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in max-w-full overflow-x-hidden">
       <PageHeader
         title="Leave Management"
         description="Review and manage employee leave requests"
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             {selectedRequests.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setSelectedRequests([])}>
-                  Clear ({selectedRequests.length})
+              <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+                <Button variant="outline" size="sm" onClick={() => setSelectedRequests([])} className="h-9">
+                  Clear
                 </Button>
-                <Button size="sm" onClick={handleBulkApprove} disabled={actionLoading}>
-                  Approve Selected
+                <Button size="sm" onClick={handleBulkApprove} disabled={actionLoading} className="h-9">
+                  Approve ({selectedRequests.length})
                 </Button>
               </div>
             )}
-            <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
+            <Button variant="outline" size="icon" onClick={fetchData} disabled={loading} className="shrink-0 h-9 w-9">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2 h-9">
               <Download className="w-4 h-4" />
-              Export
+              <span className="hidden sm:inline">Export</span>
             </Button>
           </div>
         }
@@ -471,31 +696,33 @@ export default function LeavesPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard title="Pending Requests" value={String(pendingCount)} icon={Clock} variant="warning" />
-        <StatCard title="Approved This Month" value={String(approvedCount)} icon={CheckCircle} variant="success" />
+        <StatCard title="Approved" value={String(approvedCount)} icon={CheckCircle} variant="success" />
         <StatCard title="Rejected" value={String(rejectedCount)} icon={XCircle} variant="destructive" />
         <StatCard title="Total Requests" value={String(leaveRequests.length)} icon={Users} variant="default" />
       </div>
 
       <Tabs defaultValue="requests" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="requests">All Requests</TabsTrigger>
-          <TabsTrigger value="pending">
-            Pending ({pendingRequests.length})
-          </TabsTrigger>
-          <TabsTrigger value="calendar">Leave Calendar</TabsTrigger>
-          <TabsTrigger value="policy">
-            <Settings className="w-4 h-4 mr-2" />
-            Leave Policy
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto pb-1 scrollbar-none">
+          <TabsList className="justify-start sm:justify-center w-fit min-w-full">
+            <TabsTrigger value="requests">All Requests</TabsTrigger>
+            <TabsTrigger value="pending">
+              Pending ({pendingRequests.length})
+            </TabsTrigger>
+            <TabsTrigger value="calendar">Leave Calendar</TabsTrigger>
+            <TabsTrigger value="policy">
+              <Settings className="w-4 h-4 mr-1" />
+              Policy
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="requests">
-          <div className="bg-card rounded-xl border border-border p-4 mb-4">
-            <div className="flex flex-wrap items-center gap-4">
+          <div className="bg-card rounded-xl border border-border p-3 sm:p-4 mb-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -506,7 +733,7 @@ export default function LeavesPage() {
                 </SelectContent>
               </Select>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -518,7 +745,7 @@ export default function LeavesPage() {
                 </SelectContent>
               </Select>
               <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
                 <SelectContent>
@@ -532,123 +759,7 @@ export default function LeavesPage() {
           </div>
 
           <div className="bg-card rounded-xl border border-border overflow-hidden">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : filteredRequests.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>No leave requests found</p>
-              </div>
-            ) : (
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th className="w-12">
-                      <input
-                        type="checkbox"
-                        className="rounded border-border"
-                        checked={selectedRequests.length === pendingRequests.length && pendingRequests.length > 0}
-                        onChange={() =>
-                          setSelectedRequests(
-                            selectedRequests.length === pendingRequests.length
-                              ? []
-                              : pendingRequests.map((r) => r._id)
-                          )
-                        }
-                      />
-                    </th>
-                    <th>Employee</th>
-                    <th>Type</th>
-                    <th>Duration</th>
-                    <th>Days</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRequests.map((request) => (
-                    <tr key={request._id}>
-                      <td>
-                        {request.status === "pending" && (
-                          <input
-                            type="checkbox"
-                            className="rounded border-border"
-                            checked={selectedRequests.includes(request._id)}
-                            onChange={() => toggleSelect(request._id)}
-                          />
-                        )}
-                      </td>
-                      <td>
-                        <div>
-                          <p className="font-medium">
-                            {request.employee.firstName} {request.employee.lastName}
-                            {request.status === 'pending' && !request.isRead && (
-                              <span className="ml-2 w-2 h-2 rounded-full bg-blue-500 inline-block shadow-pulse-blue" title="Unread" />
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {getEmployeeDepartment(request.employee)}
-                          </p>
-                        </div>
-                      </td>
-                      <td>{formatLeaveType(request.leaveType)}</td>
-                      <td>
-                        {formatDate(request.startDate)} - {formatDate(request.endDate)}
-                      </td>
-                      <td>{request.totalDays}</td>
-                      <td className="max-w-[200px] truncate text-muted-foreground">
-                        {request.reason || '-'}
-                      </td>
-                      <td>
-                        <StatusBadge status={request.status} />
-                        {request.attachments && request.attachments.length > 0 && (
-                          <div className="flex gap-1 mt-1">
-                            {request.attachments.map((att, idx) => (
-                              <a
-                                key={idx}
-                                href={att.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title={att.name}
-                              >
-                                <ImageIcon className="w-4 h-4 text-primary hover:text-primary-dark" />
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        {request.status === "pending" && (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 text-destructive hover:text-destructive"
-                              onClick={() => openRejectDialog(request._id)}
-                              disabled={actionLoading}
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 text-success hover:text-success"
-                              onClick={() => handleApprove(request._id)}
-                              disabled={actionLoading}
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            {renderAllRequests()}
           </div>
         </TabsContent>
 
@@ -717,11 +828,11 @@ export default function LeavesPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                          className="w-full sm:w-auto text-destructive border-destructive/30 hover:bg-destructive/10"
                           onClick={() => openRejectDialog(request._id)}
                           disabled={actionLoading}
                         >
@@ -729,6 +840,7 @@ export default function LeavesPage() {
                         </Button>
                         <Button
                           size="sm"
+                          className="w-full sm:w-auto"
                           onClick={() => handleApprove(request._id)}
                           disabled={actionLoading}
                         >

@@ -410,8 +410,8 @@ export default function TicketsPage() {
 
       {/* Tickets Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        <div className="table-container">
+          <table className="data-table">
             <thead className="bg-secondary/50 border-b border-border">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">

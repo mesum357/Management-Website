@@ -50,8 +50,8 @@ export function MainLayout() {
       >
         <Menu className="w-6 h-6" />
       </button>
-      <main className="lg:ml-64 min-h-screen transition-all duration-300">
-        <div className="p-4 sm:p-6">
+      <main className="lg:ml-64 min-h-screen transition-all duration-300 max-w-full overflow-x-hidden">
+        <div className="p-4 sm:p-6 min-w-0">
           <Outlet context={{ setSidebarOpen }} />
         </div>
       </main>

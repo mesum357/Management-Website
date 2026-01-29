@@ -469,7 +469,7 @@ export default function TasksPage() {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-2 block">
                         Assign To <span className="text-destructive">*</span>
@@ -616,7 +616,7 @@ export default function TasksPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium mb-2 block">
                     Assign To <span className="text-destructive">*</span>
@@ -727,7 +727,7 @@ export default function TasksPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Total Tasks"
           value={tasks.length.toString()}
@@ -753,7 +753,6 @@ export default function TasksPage() {
           variant="success"
         />
       </div>
-
       {/* Filters */}
       <div className="bg-card rounded-xl border border-border p-4 mb-6">
         <div className="flex flex-wrap items-center gap-4">
@@ -806,7 +805,7 @@ export default function TasksPage() {
                 key={task._id}
                 className="bg-card rounded-xl border border-border p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
                     <div className={cn("p-2.5 rounded-lg", priority.color)}>
                       <PriorityIcon className="w-5 h-5" />
@@ -985,7 +984,7 @@ export default function TasksPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground mb-1">Assigned To</h4>
                   <p className="font-medium">{getAssigneeNames(selectedTask)}</p>
@@ -1045,6 +1044,6 @@ export default function TasksPage() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </div >
   );
 }

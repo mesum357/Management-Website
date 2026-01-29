@@ -344,15 +344,17 @@ export default function BossNoticesPage() {
 
   const renderNoticeForm = (isEdit: boolean = false) => (
     <div className="space-y-4 mt-4">
-      <div>
-        <label className="text-sm font-medium mb-2 block">
-          Title <span className="text-destructive">*</span>
-        </label>
-        <Input
-          placeholder="Announcement title..."
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-        />
+      <div className="grid grid-cols-1 gap-4">
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Title <span className="text-destructive">*</span>
+          </label>
+          <Input
+            placeholder="Announcement title..."
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          />
+        </div>
       </div>
       <div>
         <label className="text-sm font-medium mb-2 block">
@@ -365,7 +367,7 @@ export default function BossNoticesPage() {
           onChange={(e) => setFormData({ ...formData, content: e.target.value })}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-2 block">Category</label>
           <Select
@@ -403,7 +405,7 @@ export default function BossNoticesPage() {
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-2 block">Target Audience</label>
           <Select
@@ -663,7 +665,7 @@ export default function BossNoticesPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="stat-card">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-primary/10">

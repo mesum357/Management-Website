@@ -362,15 +362,17 @@ export default function NoticesPage() {
 
   const renderNoticeForm = (isEdit: boolean = false) => (
     <div className="space-y-4 mt-4">
-      <div>
-        <label className="text-sm font-medium mb-2 block">
-          Title <span className="text-destructive">*</span>
-        </label>
-        <Input
-          placeholder="Notice title..."
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-        />
+      <div className="grid grid-cols-1 gap-4">
+        <div>
+          <label className="text-sm font-medium mb-2 block">
+            Title <span className="text-destructive">*</span>
+          </label>
+          <Input
+            placeholder="Notice title..."
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          />
+        </div>
       </div>
       <div>
         <label className="text-sm font-medium mb-2 block">
@@ -383,7 +385,7 @@ export default function NoticesPage() {
           onChange={(e) => setFormData({ ...formData, content: e.target.value })}
         />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-2 block">Category</label>
           <Select
@@ -421,7 +423,7 @@ export default function NoticesPage() {
           </Select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium mb-2 block">Target Audience</label>
           <Select
@@ -522,13 +524,13 @@ export default function NoticesPage() {
   );
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in max-w-full overflow-x-hidden">
       <PageHeader
         title="Notice Board"
         description="Manage company announcements and notices"
         actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={fetchData} disabled={loading}>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="icon" onClick={fetchData} disabled={loading} className="shrink-0 h-9 w-9">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
             <Dialog open={isCreateOpen} onOpenChange={(open) => {
@@ -539,12 +541,13 @@ export default function NoticesPage() {
               }
             }}>
               <DialogTrigger asChild>
-                <Button className="gap-2">
+                <Button className="gap-2 flex-1 sm:flex-initial h-9">
                   <Plus className="w-4 h-4" />
-                  New Notice
+                  <span className="hidden xs:inline">New Notice</span>
+                  <span className="xs:hidden">New</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
                 <DialogHeader>
                   <DialogTitle>Create New Notice</DialogTitle>
                   <DialogDescription>
@@ -552,16 +555,17 @@ export default function NoticesPage() {
                   </DialogDescription>
                 </DialogHeader>
                 {renderNoticeForm(false)}
-                <DialogFooter>
+                <DialogFooter className="gap-2">
                   <Button variant="outline" onClick={() => {
                     setIsCreateOpen(false);
                     resetForm();
-                  }}>
+                  }} className="flex-1 sm:flex-initial">
                     Cancel
                   </Button>
                   <Button
                     onClick={handleCreateNotice}
                     disabled={submitting || !formData.title.trim() || !formData.content.trim()}
+                    className="flex-1 sm:flex-initial"
                   >
                     {submitting ? (
                       <>
@@ -571,7 +575,7 @@ export default function NoticesPage() {
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-2" />
-                        {formData.status === "draft" ? "Save Draft" : "Publish Notice"}
+                        {formData.status === "draft" ? "Save Draft" : "Publish"}
                       </>
                     )}
                   </Button>
@@ -591,7 +595,7 @@ export default function NoticesPage() {
           setError(null);
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Edit Notice</DialogTitle>
             <DialogDescription>
@@ -599,17 +603,18 @@ export default function NoticesPage() {
             </DialogDescription>
           </DialogHeader>
           {renderNoticeForm(true)}
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => {
               setIsEditOpen(false);
               setEditingNotice(null);
               resetForm();
-            }}>
+            }} className="flex-1 sm:flex-initial">
               Cancel
             </Button>
             <Button
               onClick={handleUpdateNotice}
               disabled={submitting || !formData.title.trim() || !formData.content.trim()}
+              className="flex-1 sm:flex-initial"
             >
               {submitting ? (
                 <>
@@ -681,50 +686,50 @@ export default function NoticesPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="stat-card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-primary/10">
-              <Megaphone className="w-6 h-6 text-primary" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="stat-card p-4 sm:p-5">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2 sm:p-3 rounded-xl bg-primary/10">
+              <Megaphone className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             </div>
             <div>
-              <p className="metric-label">Total Notices</p>
-              <p className="metric-value">{notices.length}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Total Notices</p>
+              <p className="text-xl sm:text-2xl font-bold">{notices.length}</p>
             </div>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-success/10">
-              <Eye className="w-6 h-6 text-success" />
+        <div className="stat-card p-4 sm:p-5">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2 sm:p-3 rounded-xl bg-success/10">
+              <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-success" />
             </div>
             <div>
-              <p className="metric-label">Total Views</p>
-              <p className="metric-value">
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Total Views</p>
+              <p className="text-xl sm:text-2xl font-bold">
                 {notices.reduce((sum, n) => sum + getReadCount(n), 0)}
               </p>
             </div>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-warning/10">
-              <Clock className="w-6 h-6 text-warning" />
+        <div className="stat-card p-4 sm:p-5">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2 sm:p-3 rounded-xl bg-warning/10">
+              <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-warning" />
             </div>
             <div>
-              <p className="metric-label">Scheduled</p>
-              <p className="metric-value">{scheduledNotices.length}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Scheduled</p>
+              <p className="text-xl sm:text-2xl font-bold">{scheduledNotices.length}</p>
             </div>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-muted">
-              <FileText className="w-6 h-6 text-muted-foreground" />
+        <div className="stat-card p-4 sm:p-5">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-2 sm:p-3 rounded-xl bg-muted">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
             </div>
             <div>
-              <p className="metric-label">Drafts</p>
-              <p className="metric-value">{draftNotices.length}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">Drafts</p>
+              <p className="text-xl sm:text-2xl font-bold">{draftNotices.length}</p>
             </div>
           </div>
         </div>
@@ -760,72 +765,76 @@ export default function NoticesPage() {
               return (
                 <div
                   key={notice._id}
-                  className="bg-card rounded-xl border border-border p-6 hover:shadow-md transition-shadow"
+                  className="bg-card rounded-xl border border-border p-4 sm:p-6 hover:shadow-md transition-shadow relative group"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="p-3 rounded-xl bg-primary/10 flex-shrink-0">
-                        <Megaphone className="w-5 h-5 text-primary" />
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 sm:gap-4 flex-1 w-full min-w-0">
+                      <div className="p-2 sm:p-3 rounded-xl bg-primary/10 flex-shrink-0">
+                        <Megaphone className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">{notice.title}</h3>
-                          <span className={cn("badge-status", statusConfig[status].color)}>
-                            {statusConfig[status].label}
-                          </span>
-                          {notice.isPinned && (
-                            <span className="badge-status bg-warning/10 text-warning">Pinned</span>
-                          )}
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-base sm:text-lg truncate max-w-[200px] xs:max-w-none">{notice.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <span className={cn("badge-status text-[10px] sm:text-xs py-0.5 sm:py-1", statusConfig[status].color)}>
+                              {statusConfig[status].label}
+                            </span>
+                            {notice.isPinned && (
+                              <span className="badge-status bg-warning/10 text-warning text-[10px] sm:text-xs py-0.5 sm:py-1">Pinned</span>
+                            )}
+                          </div>
                         </div>
-                        <p className="text-muted-foreground line-clamp-2 mb-3">{notice.content}</p>
-                        <div className="flex items-center gap-6 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1.5">
-                            <Building className="w-4 h-4" />
-                            {departmentNames}
+                        <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{notice.content}</p>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] sm:text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Building className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">{departmentNames}</span>
                           </div>
                           {notice.publishedBy && (
-                            <div className="flex items-center gap-1.5">
-                              <Users className="w-4 h-4" />
-                              {notice.publishedBy.email}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                              <span className="truncate">{notice.publishedBy.email}</span>
                             </div>
                           )}
                           {status === "published" && (
                             <>
                               <div className="flex items-center gap-1.5">
-                                <Calendar className="w-4 h-4" />
+                                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 {formatDate(notice.publishedAt)}
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <Eye className="w-4 h-4" />
-                                {readCount} views
+                                <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                {readCount} <span className="hidden xs:inline">views</span>
                               </div>
                             </>
                           )}
                           {status === "scheduled" && notice.expiresAt && (
                             <div className="flex items-center gap-1.5">
-                              <Clock className="w-4 h-4" />
-                              Scheduled: {formatDate(notice.expiresAt)}
+                              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              <span className="hidden xs:inline">Scheduled:</span> {formatDate(notice.expiresAt)}
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    <div className="flex sm:flex-col items-center gap-2 sm:gap-1 self-end sm:self-start bg-secondary/30 sm:bg-transparent p-1 sm:p-0 rounded-lg">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9"
+                        className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-white dark:hover:bg-slate-800"
                         onClick={() => handleEditClick(notice)}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 text-destructive hover:text-destructive"
+                        className="h-8 w-8 sm:h-9 sm:w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => handleDeleteClick(notice._id)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>

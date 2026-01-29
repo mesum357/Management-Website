@@ -122,14 +122,14 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased max-w-full overflow-x-hidden;
     font-family: 'Inter', system-ui, sans-serif;
   }
 }
 
 @layer components {
   .stat-card {
-    @apply bg-card rounded-xl p-6 shadow-card border border-border/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
+    @apply bg-card rounded-xl p-4 sm:p-6 shadow-card border border-border/50 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5;
   }
 
   .glass-card {
@@ -153,15 +153,19 @@
   }
 
   .data-table {
-    @apply w-full border-collapse;
+    @apply w-full border-collapse min-w-[800px] md:min-w-full;
+  }
+
+  .table-container {
+    @apply w-full overflow-x-auto scrollbar-thin;
   }
 
   .data-table th {
-    @apply text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-4 border-b border-border bg-muted/30;
+    @apply text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider py-3 px-4 border-b border-border bg-muted/30 whitespace-nowrap;
   }
 
   .data-table td {
-    @apply py-4 px-4 border-b border-border/50 text-sm;
+    @apply py-4 px-4 border-b border-border/50 text-sm whitespace-nowrap;
   }
 
   .data-table tr:hover {
@@ -285,5 +289,14 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted));
     border-radius: 3px;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
