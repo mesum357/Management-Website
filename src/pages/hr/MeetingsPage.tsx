@@ -462,7 +462,8 @@ export default function MeetingsPage() {
 
       {/* Meetings Table */}
       <div className="bg-card rounded-xl border border-border overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-secondary/50 border-b border-border">
               <tr>
@@ -568,6 +569,86 @@ export default function MeetingsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="md:hidden divide-y divide-border">
+          {meetings.length === 0 ? (
+            <div className="px-6 py-12 text-center text-muted-foreground">
+              <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No meetings found</p>
+            </div>
+          ) : (
+            meetings.map((meeting) => {
+              const responseCounts = getResponseCounts(meeting);
+              return (
+                <div
+                  key={meeting._id}
+                  className="p-4 space-y-4 hover:bg-secondary/10 transition-colors"
+                  onClick={() => handleViewMeeting(meeting)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-semibold text-foreground">{meeting.title}</h4>
+                      {meeting.organizer && (
+                        <p className="text-xs text-muted-foreground mt-0.5">By: {meeting.organizer.email}</p>
+                      )}
+                    </div>
+                    <StatusBadge status={meeting.status as any} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-muted-foreground uppercase font-medium tracking-wider">Date & Time</span>
+                      <span>{formatDateTime(meeting.startTime)}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-muted-foreground uppercase font-medium tracking-wider">Duration</span>
+                      <span>{getDuration(meeting.startTime, meeting.endTime)}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-muted-foreground uppercase font-medium tracking-wider">Type</span>
+                      <span className="capitalize">{meeting.meetingType}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-muted-foreground uppercase font-medium tracking-wider">Attendees</span>
+                      <div className="flex items-center gap-1">
+                        <span>{meeting.attendees.length}</span>
+                        {responseCounts.accepted > 0 && (
+                          <span className="text-xs text-success">({responseCounts.accepted} ok)</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1 col-span-2">
+                      <span className="text-xs text-muted-foreground uppercase font-medium tracking-wider">Location</span>
+                      <span className="truncate">{meeting.location || meeting.meetingLink || "N/A"}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                    {meeting.meetingLink && (
+                      <Button
+                        size="sm"
+                        className="flex-1 gap-2"
+                        onClick={() => window.open(meeting.meetingLink, "_blank")}
+                      >
+                        <Video className="w-4 h-4" />
+                        Join
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleViewMeeting(meeting)}
+                    >
+                      Details
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

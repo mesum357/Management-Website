@@ -702,84 +702,160 @@ export default function MeetingsPage() {
 
         <TabsContent value="list">
           <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Meeting</th>
-                  <th>Date & Time</th>
-                  <th>Duration</th>
-                  <th>Type</th>
-                  <th>Attendees</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {meetings.length === 0 ? (
+            {/* Desktop View */}
+            <div className="hidden md:block">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td colSpan={8} className="text-center py-12 text-muted-foreground">
-                      No meetings scheduled
-                    </td>
+                    <th>Meeting</th>
+                    <th>Date & Time</th>
+                    <th>Duration</th>
+                    <th>Type</th>
+                    <th>Attendees</th>
+                    <th>Location</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ) : (
-                  meetings.map((meeting) => (
-                    <tr key={meeting._id}>
-                      <td className="font-medium">{meeting.title}</td>
-                      <td>{formatDateTime(meeting.startTime)}</td>
-                      <td>{getDuration(meeting.startTime, meeting.endTime)}</td>
-                      <td>
-                        <span className="badge-status bg-primary/10 text-primary capitalize">
-                          {meeting.meetingType}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1.5">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          {meeting.attendees.length}
-                        </div>
-                      </td>
-                      <td className="text-muted-foreground">{meeting.location || meeting.meetingLink || "N/A"}</td>
-                      <td>
-                        <StatusBadge status={meeting.status as any} />
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          {meeting.meetingLink && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="gap-1 h-8"
-                              onClick={() => window.open(meeting.meetingLink, "_blank")}
-                            >
-                              <Video className="w-3.5 h-3.5" />
-                              Join
-                            </Button>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8"
-                            onClick={() => openEditDialog(meeting)}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 text-destructive hover:text-destructive"
-                            onClick={() => handleDeleteClick(meeting)}
-                            disabled={actionLoading}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                </thead>
+                <tbody>
+                  {meetings.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-12 text-muted-foreground">
+                        No meetings scheduled
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    meetings.map((meeting) => (
+                      <tr key={meeting._id}>
+                        <td className="font-medium">{meeting.title}</td>
+                        <td>{formatDateTime(meeting.startTime)}</td>
+                        <td>{getDuration(meeting.startTime, meeting.endTime)}</td>
+                        <td>
+                          <span className="badge-status bg-primary/10 text-primary capitalize">
+                            {meeting.meetingType}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            {meeting.attendees.length}
+                          </div>
+                        </td>
+                        <td className="text-muted-foreground">{meeting.location || meeting.meetingLink || "N/A"}</td>
+                        <td>
+                          <StatusBadge status={meeting.status as any} />
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            {meeting.meetingLink && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1 h-8"
+                                onClick={() => window.open(meeting.meetingLink, "_blank")}
+                              >
+                                <Video className="w-3.5 h-3.5" />
+                                Join
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8"
+                              onClick={() => openEditDialog(meeting)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteClick(meeting)}
+                              disabled={actionLoading}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile View */}
+            <div className="md:hidden divide-y divide-border">
+              {meetings.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground">
+                  No meetings scheduled
+                </div>
+              ) : (
+                meetings.map((meeting) => (
+                  <div key={meeting._id} className="p-4 space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h4 className="font-semibold text-foreground">{meeting.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">{formatDateTime(meeting.startTime)}</p>
+                      </div>
+                      <StatusBadge status={meeting.status as any} />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        <span>{getDuration(meeting.startTime, meeting.endTime)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Video className="w-4 h-4" />
+                        <span className="capitalize">{meeting.meetingType}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-muted-foreground col-span-2">
+                        <Users className="w-4 h-4" />
+                        <span>{meeting.attendees.length} Attendees</span>
+                      </div>
+                      {(meeting.location || meeting.meetingLink) && (
+                        <div className="flex items-center gap-2 text-muted-foreground col-span-2">
+                          <MapPin className="w-4 h-4" />
+                          <span className="truncate">{meeting.location || meeting.meetingLink}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2">
+                      {meeting.meetingLink && (
+                        <Button
+                          size="sm"
+                          className="flex-1 gap-2"
+                          onClick={() => window.open(meeting.meetingLink, "_blank")}
+                        >
+                          <Video className="w-4 h-4" />
+                          Join
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => openEditDialog(meeting)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDeleteClick(meeting)}
+                        disabled={actionLoading}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </TabsContent>
       </Tabs>
