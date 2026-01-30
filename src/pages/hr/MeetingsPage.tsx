@@ -35,7 +35,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import { cn, formatExternalUrl } from "@/lib/utils";
 import { meetingAPI, employeeAPI } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -552,7 +552,7 @@ export default function MeetingsPage() {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => window.open(meeting.meetingLink, "_blank")}
+                              onClick={() => window.open(formatExternalUrl(meeting.meetingLink), "_blank")}
                             >
                               <Video className="w-4 h-4 mr-1" />
                               Join
@@ -630,7 +630,7 @@ export default function MeetingsPage() {
                       <Button
                         size="sm"
                         className="flex-1 gap-2"
-                        onClick={() => window.open(meeting.meetingLink, "_blank")}
+                        onClick={() => window.open(formatExternalUrl(meeting.meetingLink), "_blank")}
                       >
                         <Video className="w-4 h-4" />
                         Join
