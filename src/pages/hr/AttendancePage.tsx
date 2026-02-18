@@ -46,7 +46,7 @@ interface AttendanceRecord {
     time: string;
     ipAddress?: string;
   };
-  status: "present" | "late" | "absent" | "half-day" | "on-leave";
+  status: "present" | "late" | "absent" | "early" | "overtime" | "clocked-out" | "half-day" | "on-leave";
   workingHours?: number;
   breaks?: Array<{
     startTime: string;
@@ -65,9 +65,12 @@ interface AttendanceStats {
   monthlyStats: { _id: string; count: number }[];
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   present: { label: "Present", color: "bg-success/10 text-success", icon: CheckCircle },
+  early: { label: "Early", color: "bg-primary/10 text-primary", icon: Clock },
   late: { label: "Late", color: "bg-warning/10 text-warning", icon: Clock },
+  overtime: { label: "Overtime", color: "bg-warning/10 text-warning", icon: Clock },
+  "clocked-out": { label: "Clocked Out", color: "bg-success/10 text-success", icon: CheckCircle },
   absent: { label: "Absent", color: "bg-destructive/10 text-destructive", icon: XCircle },
   "half-day": { label: "Half Day", color: "bg-info/10 text-info", icon: Clock },
   "on-leave": { label: "On Leave", color: "bg-muted text-muted-foreground", icon: Calendar },
@@ -335,8 +338,9 @@ export default function AttendancePage() {
   };
 
   // Calculate stats from records
-  const presentCount = filteredRecords.filter(r => r.status === 'present').length;
+  const presentCount = filteredRecords.filter(r => ['present', 'early', 'clocked-out'].includes(r.status)).length;
   const lateCount = filteredRecords.filter(r => r.status === 'late').length;
+  const overtimeCount = filteredRecords.filter(r => r.status === 'overtime').length;
   const absentCount = filteredRecords.filter(r => r.status === 'absent').length;
   const totalCount = filteredRecords.length;
 
@@ -498,7 +502,10 @@ export default function AttendancePage() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="present">Present</SelectItem>
+                  <SelectItem value="early">Early</SelectItem>
                   <SelectItem value="late">Late</SelectItem>
+                  <SelectItem value="overtime">Overtime</SelectItem>
+                  <SelectItem value="clocked-out">Clocked Out</SelectItem>
                   <SelectItem value="absent">Absent</SelectItem>
                 </SelectContent>
               </Select>
