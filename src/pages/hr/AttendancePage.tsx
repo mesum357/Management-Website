@@ -48,6 +48,7 @@ interface AttendanceRecord {
   };
   status: "present" | "late" | "absent" | "early" | "overtime" | "clocked-out" | "half-day" | "on-leave";
   workingHours?: number;
+  overtime?: number;
   breaks?: Array<{
     startTime: string;
     endTime?: string;
@@ -240,6 +241,7 @@ export default function AttendancePage() {
                 <th>Check In</th>
                 <th>Check Out</th>
                 <th>Break Time</th>
+                <th>Overtime</th>
                 <th>Work Hours</th>
                 <th>Status</th>
               </tr>
@@ -269,6 +271,7 @@ export default function AttendancePage() {
                     </td>
                     <td>{formatTime(record.checkOut?.time)}</td>
                     <td>{calculateBreakTime(record)}</td>
+                    <td>{record.overtime ? `${Math.round(record.overtime)}h ${Math.round((record.overtime % 1) * 60)}m` : '-'}</td>
                     <td>{calculateWorkHours(record)}</td>
                     <td>
                       <span className={cn("badge-status flex items-center gap-1.5 w-fit", config.color)}>
@@ -323,6 +326,10 @@ export default function AttendancePage() {
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Check Out</p>
                     <p className="text-sm font-medium">{formatTime(record.checkOut?.time)}</p>
                   </div>
+                  <div className="bg-muted/30 p-2 rounded-lg col-span-2">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Overtime</p>
+                    <p className="text-sm font-medium">{record.overtime ? `${Math.round(record.overtime)}h ${Math.round((record.overtime % 1) * 60)}m` : '-'}</p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
@@ -360,6 +367,7 @@ export default function AttendancePage() {
       'Check In': formatTime(record.checkIn?.time),
       'Check Out': formatTime(record.checkOut?.time),
       'Break Time': calculateBreakTime(record),
+      'Overtime': record.overtime ? `${Math.round(record.overtime)}h ${Math.round((record.overtime % 1) * 60)}m` : '-',
       'Work Hours': calculateWorkHours(record),
       'Status': statusConfig[record.status]?.label || record.status
     }));
@@ -377,6 +385,7 @@ export default function AttendancePage() {
       { wch: 12 }, // Check In
       { wch: 12 }, // Check Out
       { wch: 12 }, // Work Hours
+      { wch: 12 }, // Overtime
       { wch: 12 }, // Status
     ];
 
