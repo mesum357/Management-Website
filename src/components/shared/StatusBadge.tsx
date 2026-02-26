@@ -14,6 +14,7 @@ type StatusType =
   | "resigned"
   | "clocked-in"
   | "clocked-out"
+  | "early-clockout"
   | "on-break";
 
 interface StatusBadgeProps {
@@ -35,6 +36,7 @@ const statusStyles: Record<string, string> = {
   resigned: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
   "clocked-in": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
   "clocked-out": "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+  "early-clockout": "bg-destructive/10 text-destructive",
   "on-break": "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
 };
 
@@ -52,6 +54,7 @@ const statusLabels: Record<string, string> = {
   resigned: "Resigned",
   "clocked-in": "Clocked In",
   "clocked-out": "Clocked Out",
+  "early-clockout": "Early Clock Out",
   "on-break": "On Break",
 };
 

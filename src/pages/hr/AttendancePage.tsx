@@ -46,7 +46,7 @@ interface AttendanceRecord {
     time: string;
     ipAddress?: string;
   };
-  status: "present" | "late" | "absent" | "early" | "overtime" | "clocked-out" | "half-day" | "on-leave";
+  status: "present" | "late" | "absent" | "early" | "overtime" | "clocked-out" | "early-clockout" | "half-day" | "on-leave";
   workingHours?: number;
   overtime?: number;
   breaks?: Array<{
@@ -72,6 +72,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   late: { label: "Late", color: "bg-warning/10 text-warning", icon: Clock },
   overtime: { label: "Overtime", color: "bg-warning/10 text-warning", icon: Clock },
   "clocked-out": { label: "Clocked Out", color: "bg-success/10 text-success", icon: CheckCircle },
+  "early-clockout": { label: "Early Clock Out", color: "bg-destructive/10 text-destructive", icon: XCircle },
   absent: { label: "Absent", color: "bg-destructive/10 text-destructive", icon: XCircle },
   "half-day": { label: "Half Day", color: "bg-info/10 text-info", icon: Clock },
   "on-leave": { label: "On Leave", color: "bg-muted text-muted-foreground", icon: Calendar },
@@ -447,7 +448,7 @@ export default function AttendancePage() {
         <StatCard
           title="Late Arrivals"
           value={String(lateCount)}
-          subtitle="After 7:05 AM"
+          subtitle="After 7:05 PM"
           icon={Clock}
           variant="warning"
         />
@@ -515,6 +516,7 @@ export default function AttendancePage() {
                   <SelectItem value="late">Late</SelectItem>
                   <SelectItem value="overtime">Overtime</SelectItem>
                   <SelectItem value="clocked-out">Clocked Out</SelectItem>
+                  <SelectItem value="early-clockout">Early Clock Out</SelectItem>
                   <SelectItem value="absent">Absent</SelectItem>
                 </SelectContent>
               </Select>
