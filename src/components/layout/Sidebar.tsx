@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import bmsLogo from "@/assets/bms-logo.png";
+import mmhLogo from "@/assets/bms-logo.png";
 import {
   LayoutDashboard,
   Users,
@@ -261,9 +261,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         {!isCollapsed && (
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center p-1.5 flex-shrink-0">
-              <img src={bmsLogo} alt="BMS Logo" className="w-full h-full object-contain" />
+              <img src={mmhLogo} alt="MMH Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-bold text-sidebar-accent-foreground text-lg">BMS Corporate</span>
+            <span className="font-bold text-sidebar-accent-foreground text-lg">MMH Management Portal</span>
           </div>
         )}
         <div className="flex items-center gap-2">

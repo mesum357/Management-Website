@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import bmsLogo from "@/assets/bms-logo.png";
+import mmhLogo from "@/assets/bms-logo.png";
 import captureBg from "@/assets/capture.png";
 
 const Login = () => {
@@ -110,9 +110,9 @@ const Login = () => {
         <div className="rounded-3xl p-8 animate-fade-up bg-transparent">
           <div className="flex flex-col items-center mb-8 text-center">
             <div className="w-16 h-16 rounded-2xl bg-white/10 p-3 mb-6 backdrop-blur-sm border border-white/20">
-              <img src={bmsLogo} alt="BMS Logo" className="w-full h-full object-contain" />
+              <img src={mmhLogo} alt="MMH Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-3xl font-bold text-white">BMS Corporate</h1>
+            <h1 className="text-3xl font-bold text-white">MMH Management Portal</h1>
             <p className="text-white/80 mt-2">Management Portal</p>
           </div>
 
@@ -130,7 +130,7 @@ const Login = () => {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@bms.com"
+                  placeholder="admin@mmh.com"
                   className="pl-12 h-12 bg-white/10 backdrop-blur-md border-white/20 text-white placeholder:text-white/50"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -177,7 +177,7 @@ const Login = () => {
 
 
           <div className="mt-6 text-center text-xs text-white/60">
-            © 2026 BMS Corporate. All rights reserved.
+            © 2026 MMH. All rights reserved.
           </div>
         </div>
       </div>
