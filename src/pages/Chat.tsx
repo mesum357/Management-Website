@@ -98,6 +98,7 @@ const Chat = () => {
   const [messageRequests, setMessageRequests] = useState<any[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const selectedChatRef = useRef<Chat | null>(null);
   const [showMobileChat, setShowMobileChat] = useState(false);
 
   // Initialize socket connection
@@ -125,7 +126,8 @@ const Chat = () => {
 
     // Listen for new messages
     const handleNewMessage = (data: { chatId: string; message: Message }) => {
-      if (selectedChat && data.chatId === selectedChat._id) {
+      const currentChat = selectedChatRef.current;
+      if (currentChat && data.chatId === currentChat._id) {
         setMessages(prev => {
           // Check if message already exists to prevent duplicates
           const messageExists = prev.some(m => m._id === data.message._id);
@@ -206,6 +208,11 @@ const Chat = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Keep selectedChatRef in sync with selectedChat
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
