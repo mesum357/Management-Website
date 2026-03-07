@@ -42,6 +42,13 @@ interface ChatMessageNotification {
     };
 }
 
+// Helper to send browser notifications
+const sendBrowserNotification = (title: string, options?: NotificationOptions) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, options);
+    }
+};
+
 // Notification sound generator using Web Audio API
 const playNotificationSound = () => {
     try {
@@ -89,6 +96,11 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         playNotificationSound();
         window.dispatchEvent(new CustomEvent('refreshTickets', { detail: ticket }));
 
+        sendBrowserNotification(`New Ticket: ${ticket.ticketNumber} - ${ticket.subject}`, {
+            body: `From: ${ticket.employee.firstName} ${ticket.employee.lastName}`,
+            icon: '/favicon.ico'
+        });
+
         toast.custom((t) => (
             <div
                 onClick={() => {
@@ -117,6 +129,12 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
     const handleNewMessage = useCallback((data: ChatMessageNotification) => {
         const isChatPage = window.location.pathname.includes('/chat');
+
+        sendBrowserNotification(`New message from ${data.message.sender.email}`, {
+            body: data.message.content,
+            icon: '/favicon.ico'
+        });
+
         if (isChatPage) return;
 
         playNotificationSound();
@@ -144,6 +162,12 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
     const handleNewMessageRequest = useCallback((data: any) => {
         const isChatPage = window.location.pathname.includes('/chat');
+
+        sendBrowserNotification('New Message Request', {
+            body: 'An employee wants to start a conversation with you.',
+            icon: '/favicon.ico'
+        });
+
         if (isChatPage) return;
 
         playNotificationSound();
@@ -171,6 +195,11 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
     const handleNewLeaveRequest = useCallback((data: LeaveNotification) => {
         const isLeavePage = window.location.pathname.includes('/leaves');
+
+        sendBrowserNotification('New Leave Request', {
+            body: `${data.employee.firstName} ${data.employee.lastName} requested ${data.totalDays} day(s) of ${data.leaveType} leave.`,
+            icon: '/favicon.ico'
+        });
 
         playNotificationSound();
         window.dispatchEvent(new CustomEvent('refreshLeaves', { detail: data }));
@@ -219,6 +248,10 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
         socketRef.current = socket;
         socket.emit('join', user.id);
+
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
 
         socket.on('newTicket', handleNewTicket);
         socket.on('newMessage', handleNewMessage);
