@@ -78,19 +78,39 @@ export default function ReportActivityPage() {
   const getDateRange = (period: "today" | "week" | "month") => {
     const now = new Date();
     let startDate: Date;
-    let endDate: Date = new Date(now);
-    endDate.setHours(23, 59, 59, 999);
+    let endDate: Date;
 
     if (period === "today") {
       startDate = new Date(now);
       startDate.setHours(0, 0, 0, 0);
+      
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
     } else if (period === "week") {
       startDate = new Date(now);
       startDate.setDate(now.getDate() - now.getDay());
       startDate.setHours(0, 0, 0, 0);
+
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      if (startDate < firstOfMonth) {
+        startDate = firstOfMonth;
+      }
+
+      endDate = new Date(now);
+      endDate.setDate(now.getDate() + (6 - now.getDay()));
+      endDate.setHours(23, 59, 59, 999);
+
+      const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      lastOfMonth.setHours(23, 59, 59, 999);
+      if (endDate > lastOfMonth) {
+        endDate = lastOfMonth;
+      }
     } else {
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
     }
 
     return { startDate, endDate };

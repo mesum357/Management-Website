@@ -63,21 +63,45 @@ export default function AnalyticsPage() {
   const getDateRange = (period: "daily" | "weekly" | "monthly") => {
     const now = new Date();
     let startDate: Date;
-    let endDate: Date = new Date(now);
-    endDate.setHours(23, 59, 59, 999);
+    let endDate: Date;
 
     if (period === "daily") {
       startDate = new Date(now);
       startDate.setHours(0, 0, 0, 0);
+      
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
     } else if (period === "weekly") {
       // Start of current week (Sunday)
       startDate = new Date(now);
       startDate.setDate(now.getDate() - now.getDay());
       startDate.setHours(0, 0, 0, 0);
+
+      // Clamp to the 1st of the current month so it doesn't show previous month's records
+      const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      if (startDate < firstOfMonth) {
+        startDate = firstOfMonth;
+      }
+
+      // End of current week (Saturday)
+      endDate = new Date(now);
+      endDate.setDate(now.getDate() + (6 - now.getDay()));
+      endDate.setHours(23, 59, 59, 999);
+
+      // Clamp to the last day of the current month
+      const lastOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      lastOfMonth.setHours(23, 59, 59, 999);
+      if (endDate > lastOfMonth) {
+        endDate = lastOfMonth;
+      }
     } else {
       // Start of current month
       startDate = new Date(now.getFullYear(), now.getMonth(), 1);
       startDate.setHours(0, 0, 0, 0);
+      
+      // End of current month
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
     }
 
     return { startDate, endDate };
