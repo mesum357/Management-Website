@@ -98,7 +98,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
         sendBrowserNotification(`New Ticket: ${ticket.ticketNumber} - ${ticket.subject}`, {
             body: `From: ${ticket.employee.firstName} ${ticket.employee.lastName}`,
-            icon: '/favicon.ico'
+            icon: '/favicon.jpeg'
         });
 
         toast.custom((t) => (
@@ -132,7 +132,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
         sendBrowserNotification(`New message from ${data.message.sender.email}`, {
             body: data.message.content,
-            icon: '/favicon.ico'
+            icon: '/favicon.jpeg'
         });
 
         if (isChatPage) return;
@@ -165,7 +165,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
         sendBrowserNotification('New Message Request', {
             body: 'An employee wants to start a conversation with you.',
-            icon: '/favicon.ico'
+            icon: '/favicon.jpeg'
         });
 
         if (isChatPage) return;
@@ -198,7 +198,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
 
         sendBrowserNotification('New Leave Request', {
             body: `${data.employee.firstName} ${data.employee.lastName} requested ${data.totalDays} day(s) of ${data.leaveType} leave.`,
-            icon: '/favicon.ico'
+            icon: '/favicon.jpeg'
         });
 
         playNotificationSound();
