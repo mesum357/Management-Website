@@ -66,7 +66,7 @@ export default function ReportActivityPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<Report[]>([]);
-  const [filterPeriod, setFilterPeriod] = useState<"today" | "week" | "month">("today");
+  const [filterPeriod, setFilterPeriod] = useState<"today" | "yesterday" | "week" | "month">("today");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -75,7 +75,7 @@ export default function ReportActivityPage() {
     fetchReports();
   }, [filterPeriod]);
 
-  const getDateRange = (period: "today" | "week" | "month") => {
+  const getDateRange = (period: "today" | "yesterday" | "week" | "month") => {
     const now = new Date();
     let startDate: Date;
     let endDate: Date;
@@ -83,8 +83,15 @@ export default function ReportActivityPage() {
     if (period === "today") {
       startDate = new Date(now);
       startDate.setHours(0, 0, 0, 0);
-      
       endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (period === "yesterday") {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 1);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(now);
+      endDate.setDate(now.getDate() - 1);
       endDate.setHours(23, 59, 59, 999);
     } else if (period === "week") {
       startDate = new Date(now);
@@ -162,10 +169,12 @@ export default function ReportActivityPage() {
     setIsDialogOpen(true);
   };
 
-  const getPeriodLabel = (period: "today" | "week" | "month") => {
+  const getPeriodLabel = (period: "today" | "yesterday" | "week" | "month") => {
     switch (period) {
       case "today":
         return "Today";
+      case "yesterday":
+        return "Yesterday";
       case "week":
         return "This Week";
       case "month":
@@ -205,7 +214,7 @@ export default function ReportActivityPage() {
         </div>
         <Select
           value={filterPeriod}
-          onValueChange={(value: "today" | "week" | "month") => setFilterPeriod(value)}
+          onValueChange={(value: "today" | "yesterday" | "week" | "month") => setFilterPeriod(value)}
         >
           <SelectTrigger className="w-full sm:w-[180px]">
             <Calendar className="w-4 h-4 mr-2" />
@@ -213,6 +222,7 @@ export default function ReportActivityPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="today">Today</SelectItem>
+            <SelectItem value="yesterday">Yesterday</SelectItem>
             <SelectItem value="week">This Week</SelectItem>
             <SelectItem value="month">This Month</SelectItem>
           </SelectContent>

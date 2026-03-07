@@ -41,8 +41,8 @@ export default function AnalyticsPage() {
   // Determine base path (hr or boss)
   const basePath = location.pathname.startsWith('/boss') ? '/boss' : '/hr';
   const [loading, setLoading] = useState(true);
-  const [headsetPeriod, setHeadsetPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
-  const [salesPeriod, setSalesPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [headsetPeriod, setHeadsetPeriod] = useState<"daily" | "yesterday" | "weekly" | "monthly">("daily");
+  const [salesPeriod, setSalesPeriod] = useState<"daily" | "yesterday" | "weekly" | "monthly">("daily");
 
   // Charts data
   const [headsetData, setHeadsetData] = useState<any[]>([]);
@@ -60,7 +60,7 @@ export default function AnalyticsPage() {
     fetchAnalytics();
   }, [headsetPeriod, salesPeriod]);
 
-  const getDateRange = (period: "daily" | "weekly" | "monthly") => {
+  const getDateRange = (period: "daily" | "yesterday" | "weekly" | "monthly") => {
     const now = new Date();
     let startDate: Date;
     let endDate: Date;
@@ -70,6 +70,14 @@ export default function AnalyticsPage() {
       startDate.setHours(0, 0, 0, 0);
       
       endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (period === "yesterday") {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 1);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(now);
+      endDate.setDate(now.getDate() - 1);
       endDate.setHours(23, 59, 59, 999);
     } else if (period === "weekly") {
       // Start of current week (Sunday)
@@ -135,6 +143,8 @@ export default function AnalyticsPage() {
         // Set subtitle based on period
         if (headsetPeriod === "daily") {
           setHeadsetSubtitle("Today's headset count");
+        } else if (headsetPeriod === "yesterday") {
+          setHeadsetSubtitle("Yesterday's headset count");
         } else if (headsetPeriod === "weekly") {
           setHeadsetSubtitle("Weekly headset count");
         } else {
@@ -156,7 +166,7 @@ export default function AnalyticsPage() {
         setHeadsetData(headsetChartData);
       } else {
         setHeadsetCount(0);
-        setHeadsetSubtitle(headsetPeriod === "daily" ? "Today's headset count" : headsetPeriod === "weekly" ? "Weekly headset count" : "Monthly headset count");
+        setHeadsetSubtitle(headsetPeriod === "daily" ? "Today's headset count" : headsetPeriod === "yesterday" ? "Yesterday's headset count" : headsetPeriod === "weekly" ? "Weekly headset count" : "Monthly headset count");
         setHeadsetData([]);
       }
 
@@ -172,6 +182,8 @@ export default function AnalyticsPage() {
         // Set subtitle based on period
         if (salesPeriod === "daily") {
           setSalesSubtitle("Today's sales");
+        } else if (salesPeriod === "yesterday") {
+          setSalesSubtitle("Yesterday's sales");
         } else if (salesPeriod === "weekly") {
           setSalesSubtitle("Weekly sales");
         } else {
@@ -192,7 +204,7 @@ export default function AnalyticsPage() {
       } else {
         setSalesTotal(0);
         setSalesCountTotal(0);
-        setSalesSubtitle(salesPeriod === "daily" ? "Today's sales" : salesPeriod === "weekly" ? "Weekly sales" : "Monthly sales");
+        setSalesSubtitle(salesPeriod === "daily" ? "Today's sales" : salesPeriod === "yesterday" ? "Yesterday's sales" : salesPeriod === "weekly" ? "Weekly sales" : "Monthly sales");
         setSalesData([]);
       }
 
@@ -245,12 +257,13 @@ export default function AnalyticsPage() {
           variant="primary"
           actions={
             <div className="flex items-center gap-2">
-              <Select value={headsetPeriod} onValueChange={(value: "daily" | "weekly" | "monthly") => setHeadsetPeriod(value)}>
+              <Select value={headsetPeriod} onValueChange={(value: "daily" | "yesterday" | "weekly" | "monthly") => setHeadsetPeriod(value)}>
                 <SelectTrigger className="w-[100px] h-8">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="yesterday">Yesterday</SelectItem>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="monthly">Monthly</SelectItem>
                 </SelectContent>
